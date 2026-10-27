@@ -11,6 +11,7 @@ import {
   collection,
   collectionHandles,
   collections,
+  contentPageList,
   createCategory,
   createProduct,
   deleteCategory,
@@ -29,6 +30,7 @@ import {
   updateFooterGroup,
   updateFooterLink,
   pageSections,
+  pageKey,
   productByHandle,
   productById,
   productCategoryIndex,
@@ -39,6 +41,7 @@ import {
   productsByCategory,
   relatedProducts,
   removeProductFromCategory,
+  replacePageBlocks,
   saveProductDetails,
   saveSectionData,
   saveSectionEnabled,
@@ -87,7 +90,7 @@ import { SORTS, collectionIndex, collectionView } from './views/collection.js';
 import { productView } from './views/product.js';
 import { cartPage, checkoutPage, thankYouPage } from './views/cart.js';
 import { contentPage, searchPage } from './views/pages.js';
-import { adminNotFound, adminPage, categoriesView, categoryProductsView, footerView, homeView, loginView } from './views/admin.js';
+import { adminNotFound, adminPage, categoriesView, categoryProductsView, footerView, homeView, loginView, pageEditorView, pagesView } from './views/admin.js';
 import { cartDrawerContent } from './views/cart-drawer.js';
 
 /* --------------------------------------------------------------- responses ---- */
@@ -956,6 +959,197 @@ const adminCategoryProductsPage = async (request, env, user) => {
   });
 };
 
+/* --------------------------------------------------------- content pages ---- */
+
+/**
+ * The content pages the admin may edit. Their copy lives in `sections` under
+ * `page = 'page:<handle>'`, which `/pages/<handle>` already renders; this list is
+ * what gives the screen its Chinese labels and its fixed order.
+ */
+const CONTENT_PAGES = [
+  ['about', '关于我们'],
+  ['contact-details', '联系我们'],
+  ['faq', '常见问题'],
+  ['terms-and-conditions', '服务条款'],
+  ['privacy', '隐私政策'],
+  ['delivery', '配送说明'],
+  ['returns', '退换货'],
+  ['store-locator', '门店位置'],
+];
+
+const PAGE_NOTICES = {
+  'pages-saved': { kind: 'success', message: '页面已保存，前台立即生效。' },
+  'pages-handle': { kind: 'danger', message: '这个页面不在可编辑的列表里。' },
+  'pages-storage': { kind: 'danger', message: '这个 Worker 没有绑定 R2，图片传不上去：请改为填写图片路径。' },
+  'pages-type': { kind: 'danger', message: '只支持 JPEG / PNG / WebP / AVIF 图片。' },
+  'pages-size': { kind: 'danger', message: '图片太大了，单张上限 25 MB。' },
+  'pages-image': { kind: 'danger', message: '图片路径必须以 “/” 开头，或者是一个完整的 https:// 链接。' },
+};
+
+const pageLabel = (handle) => (CONTENT_PAGES.find(([key]) => key === handle) || [])[1] || handle;
+
+const asArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (value === undefined || value === null || value === '') return [];
+  return [value];
+};
+
+/**
+ * What the textarea becomes in the database. Plain text becomes one paragraph
+ * per blank line, with single newlines as line breaks; text that already carries
+ * inline markup keeps that markup (a link or a bold run is not thrown away), and
+ * is paragraph-wrapped the same way.
+ */
+const toParagraphs = (value) => {
+  const text = String(value === undefined || value === null ? '' : value).trim();
+  if (!text) return '';
+  const escape = (part) => part.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const hasMarkup = /<[a-z][\s\S]*>/i.test(text);
+  return text
+    .split(/\n{2,}/)
+    .map((paragraph) => {
+      const inner = hasMarkup ? paragraph : escape(paragraph);
+      const wrapped = inner.replace(/\n/g, '<br>');
+      return /^<p[\s>]/i.test(wrapped) ? wrapped : `<p>${wrapped}</p>`;
+    })
+    .join('');
+};
+
+/**
+ * The reverse, for the editor: the stored HTML shows up as readable paragraphs
+ * with blank lines between them, so nobody has to edit raw `<p>` tags. Inline
+ * markup (links, bold) stays visible and is stored back as it was.
+ */
+const toEditorText = (html) => {
+  const text = String(html === undefined || html === null ? '' : html);
+  if (!text || !text.includes('<')) return text;
+  return text
+    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+    .replace(/^<p[^>]*>/i, '')
+    .replace(/<\/p>\s*$/i, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
+const adminPagesListPage = async (request, env, user) => {
+  const url = new URL(request.url);
+  const rows = await contentPageList(env.DB);
+  const known = new Map(rows.map((row) => [row.handle, row]));
+  const list = CONTENT_PAGES.map(([handle, label]) => {
+    const row = known.get(handle) || {};
+    return { handle, label, blocks: row.blocks || 0, updatedAt: row.updatedAt || '' };
+  });
+  // A page row that is not on the fixed list still belongs to somebody: show it.
+  for (const row of rows) {
+    if (!CONTENT_PAGES.some(([handle]) => handle === row.handle)) {
+      list.push({ handle: row.handle, label: row.handle, blocks: row.blocks, updatedAt: row.updatedAt });
+    }
+  }
+  return adminResponse({
+    env,
+    user,
+    title: '页面内容',
+    body: pagesView({ list }),
+    flash: adminNotice(url, PAGE_NOTICES),
+  });
+};
+
+const adminPageEditorPage = async (request, env, user, handle) => {
+  const url = new URL(request.url);
+  const label = pageLabel(handle);
+  const list = await pageSections(env.DB, pageKey(handle));
+  const first = list.find((row) => row.type === 'page');
+  const blocks = list.map((row) => ({
+    key: `b${row.id}`,
+    type: row.type,
+    title: row.data.title || '',
+    body: toEditorText(row.data.body),
+    image: row.data.image || '',
+    text: row.data.text || '',
+    width: row.data.width === 'narrow' ? 'narrow' : 'wide',
+  }));
+  return adminResponse({
+    env,
+    user,
+    title: `${label} · 页面内容`,
+    body: pageEditorView({
+      handle,
+      label,
+      title: (first && (first.data.heading || first.data.title)) || label,
+      blocks,
+      mediaBound: Boolean(env.MEDIA),
+    }),
+    flash: adminNotice(url, PAGE_NOTICES),
+  });
+};
+
+/** Rewrites every block of one content page from the editor's parallel arrays. */
+const adminPageSave = async (request, env) => {
+  const data = await readForm(request);
+  const handle = String(data.handle || '').trim();
+  if (!CONTENT_PAGES.some(([key]) => key === handle)) return redirect('/admin/pages?error=pages-handle');
+
+  const files = new Map((data.files || []).map((item) => [item.input, item.file]));
+  const types = asArray(data.block_type);
+  const keys = asArray(data.block_key);
+  const titles = asArray(data.block_title);
+  const bodies = asArray(data.block_body);
+  const images = asArray(data.block_image);
+  const texts = asArray(data.block_text);
+  const widths = asArray(data.block_width);
+  const blocks = [];
+
+  for (let index = 0; index < types.length; index += 1) {
+    if (types[index] === 'image_banner') {
+      const key = String(keys[index] || '');
+      let image = String(images[index] || '').trim().slice(0, 300);
+      const file = key ? files.get(`upload.${key}`) : null;
+      if (file) {
+        if (!env.MEDIA) return redirect(`/admin/pages/${handle}?error=pages-storage`);
+        const stored = await storeMediaFile(env, file, 'image', 'pages');
+        if (stored.error) return redirect(`/admin/pages/${handle}?error=pages-${stored.error === 'size' ? 'size' : 'type'}`);
+        image = stored.path;
+      }
+      if (!image) continue;
+      if (!(image.startsWith('/') || /^https?:\/\//.test(image))) {
+        return redirect(`/admin/pages/${handle}?error=pages-image`);
+      }
+      blocks.push({
+        type: 'image_banner',
+        name: '图片',
+        data: {
+          image,
+          text: String(texts[index] || '').trim().slice(0, 200),
+          width: String(widths[index] || '') === 'narrow' ? 'narrow' : 'wide',
+        },
+      });
+      continue;
+    }
+
+    const title = String(titles[index] || '').trim().slice(0, 120);
+    const body = toParagraphs(bodies[index]).slice(0, 20000);
+    if (!title && !body) continue;
+    blocks.push({ type: 'page', name: '正文', data: { title, body } });
+  }
+
+  // The page heading lives in `heading` on the first body block (the seeded rows
+  // carry it in `title` instead). When the two are the same text, the old `title`
+  // is cleared so the block does not print its own heading twice.
+  const pageTitle = String(data.page_title || '').trim().slice(0, 120);
+  const firstBody = blocks.find((block) => block.type === 'page');
+  if (firstBody) {
+    const heading = pageTitle || firstBody.data.title || '';
+    if (firstBody.data.title === heading) firstBody.data.title = '';
+    firstBody.data.heading = heading;
+  } else {
+    blocks.unshift({ type: 'page', name: '正文', data: { heading: pageTitle || pageLabel(handle), title: '', body: '' } });
+  }
+
+  await replacePageBlocks(env.DB, handle, blocks);
+  return redirect(`/admin/pages/${handle}?flash=pages-saved`);
+};
+
 /** Reads the form and the category it was submitted from (`category_slug`). */
 const productFormContext = async (request, env) => {
   const data = await readForm(request);
@@ -1081,6 +1275,16 @@ const adminRoute = async (request, env, path, method) => {
   if (path === '/admin/categories/save') return isPost ? adminCategorySave(request, env) : methodNotAllowed();
   if (path === '/admin/categories/delete') return isPost ? adminCategoryDelete(request, env) : methodNotAllowed();
   if (path === '/admin/categories/move') return isPost ? adminCategoryMove(request, env) : methodNotAllowed();
+  if (path === '/admin/pages') {
+    if (isPost) return methodNotAllowed();
+    return isGet ? adminPagesListPage(request, env, user) : methodNotAllowed();
+  }
+  if (path === '/admin/pages/save') return isPost ? adminPageSave(request, env) : methodNotAllowed();
+  if (path.startsWith('/admin/pages/')) {
+    const handle = decodeURIComponent(path.slice('/admin/pages/'.length));
+    if (isPost) return methodNotAllowed();
+    return isGet ? adminPageEditorPage(request, env, user, handle) : methodNotAllowed();
+  }
   if (path === '/admin/home') {
     if (isPost) return methodNotAllowed();
     return isGet ? adminHomePage(request, env, user) : methodNotAllowed();
@@ -1249,7 +1453,7 @@ const pageRoute = async (request, env, ctx, handle) => {
   if (!list.length) return notFound(ctx, '这个页面不存在。');
   const first = list.find((section) => section.type === 'page');
   return view(ctx, {
-    title: (first && first.data.title) || handle,
+    title: (first && (first.data.heading || first.data.title)) || handle,
     description: first && first.data.body ? first.data.body.replace(/<[^>]+>/g, ' ').slice(0, 160) : '',
     body: contentPage({ handle, list }),
   });

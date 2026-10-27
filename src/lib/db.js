@@ -299,8 +299,56 @@ export const pageSections = async (db, page = 'home') => {
   return (results || []).map((row) => ({ ...row, enabled: Boolean(row.enabled), data: parseJson(row.data, {}) }));
 };
 
-/** Writes one section's JSON payload back - the storefront renders it next request. */
-export const saveSectionData = async (db, id, data) => {
+/** The `page` key a content page's blocks live under. */
+export const pageKey = (handle) => `page:${String(handle || '').trim()}`;
+
+/**
+ * Every content page that has blocks, with how many and when the newest one was
+ * written. Pages with no row at all do not appear - the screen adds the fixed
+ * list of pages it knows about on top of this.
+ */
+export const contentPageList = async (db) => {
+  const { results } = await db
+    .prepare(
+      `SELECT page, COUNT(*) AS blocks, MAX(updated_at) AS updated_at
+         FROM sections WHERE page LIKE 'page:%'
+        GROUP BY page ORDER BY page`
+    )
+    .all();
+  return (results || []).map((row) => ({
+    handle: String(row.page).slice('page:'.length),
+    blocks: Number(row.blocks) || 0,
+    updatedAt: row.updated_at || '',
+  }));
+};
+
+/**
+ * Replaces every block of one content page, in the order given. The editor sends
+ * the complete list, so this is delete-then-insert: the ids change, the content
+ * does not. `position` is the array order, and `updated_at` is what /admin/pages
+ * shows as the last edit.
+ */
+export const replacePageBlocks = async (db, handle, blocks = []) => {
+  const key = pageKey(handle);
+  if (key === 'page:') return false;
+  const statements = [db.prepare('DELETE FROM sections WHERE page = ?').bind(key)];
+  blocks.forEach((block, index) => {
+    const type = block.type === 'image_banner' ? 'image_banner' : 'page';
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO sections (page, type, name, position, enabled, data, updated_at)
+           VALUES (?, ?, ?, ?, 1, ?, datetime('now'))`
+        )
+        .bind(key, type, block.name || (type === 'image_banner' ? '图片' : '正文'), index + 1, JSON.stringify(block.data || {}))
+    );
+  });
+  await db.batch(statements);
+  invalidate('sections');
+  return true;
+};
+
+/** Writes one section's JSON payload back - the storefront renders it next request. */export const saveSectionData = async (db, id, data) => {
   const result = await db.prepare('UPDATE sections SET data = ? WHERE id = ?').bind(JSON.stringify(data), Number(id)).run();
   invalidate('sections');
   return Boolean(result.meta && result.meta.changes);

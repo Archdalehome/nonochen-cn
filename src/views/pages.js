@@ -1,8 +1,22 @@
 import { html, safe } from '../lib/html.js';
 import { breadcrumbs, productCard, sectionHeading } from './partials.js';
-import { imageBanner } from './home.js';
 
 const bodyCopy = (body) => html`<div class="rte text-secondary fs-7">${safe(body || '')}</div>`;
+
+/**
+ * An image block on a content page. The admin editor writes `image` (a path in
+ * R2 or a full URL), `text` (the caption) and `width` (`wide` fills the text
+ * column, `narrow` sits centred at 40rem). The homepage's own banner block is a
+ * different renderer - this one never carries a button.
+ */
+const contentImage = (section) => {
+  const { image = '', text = '', width = 'wide' } = section.data || {};
+  if (!image) return '';
+  return html`<figure class="content-image my-4 ${width === 'narrow' ? 'content-image--narrow' : ''}">
+    <img src="${image}" alt="${text}" class="w-100 rounded-3" loading="lazy">
+    ${text ? html`<figcaption class="fs-8 text-secondary text-center mt-2">${text}</figcaption>` : ''}
+  </figure>`;
+};
 
 /**
  * Content pages (`/pages/:handle`) are stored as one or more `sections` rows
@@ -10,7 +24,9 @@ const bodyCopy = (body) => html`<div class="rte text-secondary fs-7">${safe(body
  */
 export const contentPage = ({ handle, list }) => {
   const first = list.find((section) => section.type === 'page');
-  const title = (first && first.data.title) || handle.replace(/-/g, ' ');
+  // `heading` is what the editor writes for the page title; the seeded pages put
+  // the same text in `title`, so both are read, in that order.
+  const title = (first && (first.data.heading || first.data.title)) || handle.replace(/-/g, ' ');
 
   return html`
     <div class="container pt-3">
@@ -30,7 +46,7 @@ export const contentPage = ({ handle, list }) => {
                   ${bodyCopy(section.data.body)}
                 </div>`;
               case 'image_banner':
-                return imageBanner(section);
+                return contentImage(section);
               default:
                 return '';
             }

@@ -32,6 +32,7 @@ export const adminHeader = ({ user, siteName }) => html`
       <a href="/admin/categories" class="heading-font text-uppercase text-white text-decoration-none fs-6">${siteName} 管理后台</a>
       <nav class="ms-auto d-flex align-items-center gap-3 fs-7">
         <a href="/admin/home" class="text-white text-decoration-none">首页</a>
+        <a href="/admin/pages" class="text-white text-decoration-none">页面</a>
         <a href="/admin/footer" class="text-white text-decoration-none">页脚</a>
         <a href="/admin/categories" class="text-white text-decoration-none">分类</a>
         <a href="/" class="text-white text-decoration-none" target="_blank" rel="noopener">查看店铺</a>
@@ -1259,3 +1260,169 @@ export const footerView = ({ groups = [], settings = {}, media = true } = {}) =>
       </form>
     </div>
   </section>`;
+
+/* ------------------------------------------------------------ 内容页面 ---- */
+
+/**
+ * `/admin/pages` - the eight content pages (关于我们 / 联系我们 / 常见问题 /
+ * 服务条款 / 隐私政策 / 配送说明 / 退换货 / 门店位置). Their copy lives in
+ * `sections` under `page = 'page:<handle>'`, which the storefront already
+ * renders; this screen is only the missing way in.
+ */
+export const pagesView = ({ list = [], notice = '' }) => html`
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+      <h1 class="heading-font text-uppercase h4 mb-1">页面内容</h1>
+      <p class="text-secondary fs-7 mb-0">
+        关于我们、联系我们、常见问题、服务条款、隐私政策、配送说明、退换货、门店位置——这八页的正文和配图都在这里改。
+      </p>
+    </div>
+    <a class="btn btn-outline-secondary btn-sm rounded px-3" href="/admin/categories">返回分类</a>
+  </div>
+  ${notice}
+  <div class="card border-0 shadow-sm rounded-3">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr class="fs-8 text-uppercase text-secondary">
+            <th scope="col" class="ps-4">页面</th>
+            <th scope="col">内容块</th>
+            <th scope="col">最后修改</th>
+            <th scope="col" class="text-end pe-4">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.map(
+            (page) => html`<tr>
+              <td class="ps-4">
+                <strong class="d-block">${page.label}</strong>
+                <code class="fs-8 text-secondary">/pages/${page.handle}</code>
+              </td>
+              <td class="fs-7">${page.blocks ? `${page.blocks} 块` : '还没有内容'}</td>
+              <td class="fs-8 text-secondary">${page.updatedAt ? `${page.updatedAt} UTC` : '未记录'}</td>
+              <td class="text-end pe-4 text-nowrap">
+                <a class="btn btn-sm btn-primary rounded px-3" href="/admin/pages/${page.handle}">编辑</a>
+                <a class="btn btn-sm btn-link text-secondary" href="/pages/${page.handle}" target="_blank" rel="noopener">预览</a>
+              </td>
+            </tr>`
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+
+/** One block in the page editor: a body block or an image block, both editable. */
+const pageBlockRow = (block = {}, mediaBound = false) => {
+  const type = block.type === 'image_banner' ? 'image_banner' : 'page';
+  const key = block.key || `k${Math.random().toString(36).slice(2, 10)}`;
+  const isImage = type === 'image_banner';
+  return html`
+  <div class="card border rounded-3 mb-3" data-repeat-row data-block>
+    <input type="hidden" name="block_key[]" value="${key}">
+    <div class="card-body row g-3">
+      <div class="col-12 col-md-3">
+        <label class="form-label fs-8 text-uppercase mb-1">块类型</label>
+        <select class="form-select form-select-sm" name="block_type[]" data-block-type>
+          <option value="page" ${isImage ? '' : safe('selected')}>正文</option>
+          <option value="image_banner" ${isImage ? safe('selected') : ''}>图片</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-9 d-flex justify-content-end align-items-start gap-1">
+        <button type="button" class="btn btn-outline-secondary btn-sm rounded px-2" data-repeat-move="up" aria-label="上移">↑</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm rounded px-2" data-repeat-move="down" aria-label="下移">↓</button>
+        <button type="button" class="btn btn-outline-danger btn-sm rounded px-2" data-repeat-remove>删除这块</button>
+      </div>
+
+      <div class="col-12 ${isImage ? 'd-none' : ''}" data-block-fields="page">
+        <label class="form-label fs-8 text-uppercase mb-1" for="body-title-${key}">小标题（选填）</label>
+        <input class="form-control form-control-sm mb-2" id="body-title-${key}" name="block_title[]" value="${block.title || ''}" maxlength="120" placeholder="例如：材质与保养">
+        <label class="form-label fs-8 text-uppercase mb-1" for="body-text-${key}">正文</label>
+        <textarea class="form-control form-control-sm" id="body-text-${key}" name="block_body[]" rows="6" placeholder="直接写文字，空一行就是一个新段落。">${block.body || ''}</textarea>
+        <p class="fs-8 text-secondary mb-0 mt-1">空一行分段；需要链接时可以直接写 <code>&lt;a href="/pages/about"&gt;关于我们&lt;/a&gt;</code>。</p>
+      </div>
+
+      <div class="col-12 ${isImage ? '' : 'd-none'}" data-block-fields="image_banner">
+        <div class="row g-2">
+          <div class="col-12 col-md-7">
+            <label class="form-label fs-8 text-uppercase mb-1" for="image-src-${key}">图片</label>
+            <input class="form-control form-control-sm" id="image-src-${key}" name="block_image[]" value="${block.image || ''}" maxlength="300" placeholder="/images/about-factory.jpg">
+          </div>
+          <div class="col-12 col-md-5">
+            <label class="form-label fs-8 text-uppercase mb-1" for="image-upload-${key}">或上传一张</label>
+            <input class="form-control form-control-sm" id="image-upload-${key}" type="file" name="upload.${key}" accept="image/jpeg,image/png,image/webp,image/avif">
+          </div>
+          <div class="col-12 col-md-7">
+            <label class="form-label fs-8 text-uppercase mb-1" for="image-caption-${key}">说明文字（选填）</label>
+            <input class="form-control form-control-sm" id="image-caption-${key}" name="block_text[]" value="${block.text || ''}" maxlength="200" placeholder="车间里正在打样的那张凳子">
+          </div>
+          <div class="col-12 col-md-5">
+            <label class="form-label fs-8 text-uppercase mb-1" for="image-width-${key}">宽度</label>
+            <select class="form-select form-select-sm" id="image-width-${key}" name="block_width[]">
+              <option value="wide" ${block.width === 'narrow' ? '' : safe('selected')}>通栏</option>
+              <option value="narrow" ${block.width === 'narrow' ? safe('selected') : ''}>居中窄图</option>
+            </select>
+          </div>
+        </div>
+        ${mediaBound ? '' : html`<p class="fs-8 text-secondary mb-0 mt-2">当前没有绑定 R2，只能填图片路径或完整链接。</p>`}
+      </div>
+    </div>
+  </div>`;
+};
+
+const pageBlockTemplate = (type, mediaBound) =>
+  pageBlockRow(
+    {
+      key: `tpl-${type}-${Math.random().toString(36).slice(2, 8)}`,
+      type,
+      title: '',
+      body: '',
+      image: '',
+      text: '',
+      width: 'wide',
+    },
+    mediaBound
+  );
+
+/**
+ * `/admin/pages/<handle>` - the title and the ordered blocks of one content page.
+ * Blocks post as parallel arrays (`block_type[]`, `block_body[]` ...), so the DOM
+ * order is the saved order.
+ */
+export const pageEditorView = ({ handle, label, title, blocks = [], mediaBound = false }) => html`
+  <p class="fs-8 mb-2"><a class="text-secondary" href="/admin/pages">页面内容</a> / ${label}</p>
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+      <h1 class="heading-font text-uppercase h4 mb-1">${label}</h1>
+      <p class="text-secondary fs-7 mb-0"><code>/pages/${handle}</code> &middot; ${blocks.length} 块</p>
+    </div>
+    <a class="btn btn-outline-dark btn-sm rounded px-3" href="/pages/${handle}" target="_blank" rel="noopener">预览</a>
+  </div>
+
+  <form method="post" action="/admin/pages/save" enctype="multipart/form-data">
+    <input type="hidden" name="handle" value="${handle}">
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+      <div class="card-body">
+        <label class="form-label fs-8 text-uppercase mb-1" for="page-title">页面标题</label>
+        <input class="form-control" id="page-title" name="page_title" value="${title}" maxlength="120" placeholder="${label}">
+        <p class="fs-8 text-secondary mb-0 mt-1">显示为页面的主标题，也用在浏览器标签和面包屑上。</p>
+      </div>
+    </div>
+
+    <div data-repeat data-repeat-allow-empty>
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h2 class="h6 text-uppercase mb-0">内容块</h2>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-dark btn-sm rounded px-3" data-repeat-add="page">添加正文块</button>
+          <button type="button" class="btn btn-outline-dark btn-sm rounded px-3" data-repeat-add="image_banner">添加图片块</button>
+        </div>
+      </div>
+      <div class="d-flex flex-column" data-repeat-list>${blocks.map((block) => pageBlockRow(block, mediaBound))}</div>
+      <template data-repeat-template="page">${pageBlockTemplate('page', mediaBound)}</template>
+      <template data-repeat-template="image_banner">${pageBlockTemplate('image_banner', mediaBound)}</template>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center gap-3 mt-4">
+      <p class="fs-8 text-secondary mb-0">保存后立即生效；前台按这里的顺序渲染。</p>
+      <button class="btn btn-primary rounded px-4" type="submit">保存页面</button>
+    </div>
+  </form>`;

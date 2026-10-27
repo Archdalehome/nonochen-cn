@@ -309,6 +309,18 @@ await check('/admin/categories/products?slug=no-such-category', {
   contains: ['这个分类已经不存在了。'],
 });
 
+// The content pages: the list of eight, and the editor of one of them. Both read
+// what the storefront renders, so a broken save path shows up here.
+await check('/admin/pages', {
+  init: { headers: admin },
+  contains: ['页面内容', '关于我们', '门店位置', '/admin/pages/about', '最后修改'],
+});
+await check('/admin/pages/about', {
+  init: { headers: admin },
+  contains: ['name="page_title"', 'name="block_body[]"', 'name="block_type[]"', '添加图片块'],
+});
+await check('/admin/pages/store-locator', { init: { headers: admin }, contains: ['门店位置'] });
+
 // The home page screen holds the announcement bar and the hero the storefront
 // renders. Saving the values it just showed back proves the whole path (form ->
 // D1 -> storefront) without changing what the site displays - so it is safe to

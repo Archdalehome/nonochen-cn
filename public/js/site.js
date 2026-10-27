@@ -198,25 +198,34 @@
   });
 
   // The repeaters on the product screen (specs, features, sizes, colours, the
-  // gallery). The rows post as arrays in DOM order, so moving a row here is what
-  // stores it in that order. Without JS the form still posts every row it
-  // rendered - only adding, removing and reordering need this.
+  // gallery) and on the page editor (body and image blocks). The rows post as
+  // arrays in DOM order, so moving a row here is what stores it in that order.
+  // Without JS the form still posts every row it rendered - only adding,
+  // removing and reordering need this.
   $$('[data-repeat]').forEach((group) => {
     const list = group.querySelector('[data-repeat-list]');
-    const template = group.querySelector('template[data-repeat-template]');
-    const add = group.querySelector('[data-repeat-add]');
-    if (!list || !template) return;
+    const templates = $$('template[data-repeat-template]', group);
+    if (!list || !templates.length) return;
+    const allowEmpty = group.hasAttribute('data-repeat-allow-empty');
 
     const rows = () => Array.from(list.querySelectorAll('[data-repeat-row]'));
+    const templateFor = (name) =>
+      (name && group.querySelector(`template[data-repeat-template="${name}"]`)) || templates[0];
 
-    if (add) {
-      add.addEventListener('click', () => {
+    $$('[data-repeat-add]', group).forEach((button) => {
+      button.addEventListener('click', () => {
+        const template = templateFor(button.getAttribute('data-repeat-add'));
+        if (!template) return;
         const row = template.content.firstElementChild.cloneNode(true);
+        // A block added here sends its upload under a name nobody has used yet.
+        row.querySelectorAll('input[type="file"]').forEach((input) => {
+          input.name = input.name.replace(/upload\.[^.]+$/, `upload.new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+        });
         list.appendChild(row);
-        const first = row.querySelector('input, select');
+        const first = row.querySelector('input, textarea, select');
         if (first) first.focus();
       });
-    }
+    });
 
     group.addEventListener('click', (event) => {
       const button = event.target.closest('[data-repeat-remove], [data-repeat-move]');
@@ -225,15 +234,26 @@
       if (!row) return;
       if (button.hasAttribute('data-repeat-remove')) {
         const all = rows();
-        // Keep one row on screen: an empty list has no inputs and the section
-        // then reads as if it had been removed.
-        if (all.length > 1) row.remove();
-        else row.querySelectorAll('input, select').forEach((input) => { input.value = ''; });
+        // A product keeps at least one row of every list; a page may have no
+        // block at all, so the page editor opts in to emptying the list.
+        if (all.length > 1 || allowEmpty) row.remove();
+        else row.querySelectorAll('input, select, textarea').forEach((input) => { input.value = ''; });
         return;
       }
       const up = button.getAttribute('data-repeat-move') === 'up';
       const sibling = up ? row.previousElementSibling : row.nextElementSibling;
       if (sibling) list.insertBefore(up ? row : sibling, up ? sibling : row);
+    });
+
+    // A page block switches between the body fields and the image fields.
+    group.addEventListener('change', (event) => {
+      const select = event.target.closest('[data-block-type]');
+      if (!select) return;
+      const row = select.closest('[data-repeat-row]');
+      if (!row) return;
+      row.querySelectorAll('[data-block-fields]').forEach((fields) => {
+        fields.classList.toggle('d-none', fields.getAttribute('data-block-fields') !== select.value);
+      });
     });
 
     // Drag a row by its handle to reorder it. The handle is the row itself but

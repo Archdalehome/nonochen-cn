@@ -862,3 +862,5 @@ body > footer small { font-size: .75rem; }
   .cart--offcanvas,
   #site-toasts { display: none !important; }
 }
+
+/* content pages: an image block the admin can centre at a narrower width */.content-image--narrow { max-width: 40rem; margin-left: auto; margin-right: auto; }
