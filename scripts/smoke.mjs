@@ -121,9 +121,9 @@ const placedOk = (result) => result.inRow && result.inMenu && result.menuClean;
 const rowHeading = (text) => `<h2 class="heading-font text-uppercase fw-normal fs-2 mb-2">${text}</h2>`;
 const blockMarkers = [
   { label: 'the hero', marker: 'id="hero-', required: true },
-  { label: '"New Products"', marker: rowHeading('New Products'), required: false },
-  { label: '"Best Selling"', marker: rowHeading('Best Selling'), required: false },
-  { label: '"All Products"', marker: rowHeading('All Products'), required: true },
+  { label: '"新品推荐"', marker: rowHeading('新品推荐'), required: false },
+  { label: '"热销产品"', marker: rowHeading('热销产品'), required: false },
+  { label: '"全部产品"', marker: rowHeading('全部产品'), required: true },
 ];
 const blockOrder = (body) => blockMarkers.map(({ marker }) => body.indexOf(marker));
 // Only the blocks that made it onto the page have to be in order; a required one
