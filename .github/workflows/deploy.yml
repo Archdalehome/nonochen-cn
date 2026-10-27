@@ -64,7 +64,13 @@ jobs:
           set -euo pipefail
           DB_NAME=$(node -e "import('./scripts/wrangler-cli.mjs').then((m) => console.log(m.bindings().database))")
           echo "目标库: $DB_NAME"
-          npx wrangler d1 list --json > /tmp/d1.json 2>/dev/null || echo '[]' > /tmp/d1.json
+          if npx wrangler d1 list --json > /tmp/d1.json 2>/tmp/d1.err; then
+            echo "d1 list 成功"
+          else
+            echo "::warning::wrangler d1 list 失败（可能是 token 缺 D1 读权限），原始输出："
+            cat /tmp/d1.err || true
+            echo '[]' > /tmp/d1.json
+          fi
           ID=$(node -e "
             const fs = require('fs');
             let list = [];
@@ -75,11 +81,16 @@ jobs:
           " "$DB_NAME")
           if [ -z "$ID" ]; then
             echo "库里没有 $DB_NAME，创建中…"
-            OUT=$(npx wrangler d1 create "$DB_NAME" 2>&1 | tee /tmp/create.log || true)
+            npx wrangler d1 create "$DB_NAME" --location apac > /tmp/create.log 2>&1 || true
+            echo "--- wrangler d1 create 原始输出 ---"
+            cat /tmp/create.log || true
             ID=$(grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' /tmp/create.log | head -n1 || true)
           fi
           if [ -z "$ID" ]; then
-            echo "::error title=D1 库不可用::无法创建或找到 $DB_NAME。请确认 CLOUDFLARE_API_TOKEN 具备 Account - D1: Edit。"
+            echo "--- d1 list 原始输出（前 400 字）---"
+            head -c 400 /tmp/d1.json || true
+            echo
+            echo "::error title=D1 库不可用::无法创建或找到 $DB_NAME，原因见上面的 wrangler 原始输出。"
             exit 1
           fi
           echo "D1 $DB_NAME -> $ID"
