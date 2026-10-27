@@ -46,7 +46,7 @@ console.log(`smoke testing ${base}\n`);
 await check('/', { contains: ['Chen Furniture', '/css/site.css', '/js/site.js', 'cart--offcanvas'] });
 await check('/products', { contains: ['/products/'] });
 await check('/collections', { contains: ['/collections/'] });
-await check('/cart', { contains: ['订单摘要'] });
+await check('/cart', { contains: ['购物车是空的'] });
 await check('/checkout', {});
 await check('/checkout/thanks?name=Ada', { contains: ['Ada'] });
 await check('/search?q=bean', { contains: ['bean'] });
