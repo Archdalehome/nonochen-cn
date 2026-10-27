@@ -154,6 +154,29 @@ jobs:
           echo "url=${url}" >> "$GITHUB_OUTPUT"
           echo "deployed to ${url:-<no url in wrangler output>}"
 
+      - name: 等边缘节点生效
+        if: steps.deploy.outputs.url != ''
+        # `wrangler deploy` 返回时新版本还没铺满边缘，头几十秒可能仍打到 404/旧版本。
+        # 先轮询到首页稳定 200，再跑冒烟，否则每次首部署都会留一条假红灯。
+        run: |
+          set -uo pipefail
+          url="${{ steps.deploy.outputs.url }}"
+          ok=0
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$url/" || true)
+            echo "第 $i 次探测 $url/ -> $code"
+            if [ "$code" = "200" ]; then
+              ok=$((ok+1))
+              # 连续两次 200 才算稳定
+              [ "$ok" -ge 2 ] && exit 0
+            else
+              ok=0
+            fi
+            sleep 5
+          done
+          echo "::error::部署地址 2 分半内没有稳定返回 200"
+          exit 1
+
       - name: Smoke test the deployment
         if: steps.deploy.outputs.url != ''
         # `wrangler deploy` returns before every edge serves the new release, so
