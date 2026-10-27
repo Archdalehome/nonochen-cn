@@ -52,6 +52,25 @@ jobs:
           echo "::error title=Missing CLOUDFLARE_API_TOKEN::Add the secret in Settings -> Secrets and variables -> Actions (see README -> Continuous deployment), then re-run this job."
           exit 1
 
+      - name: 校验 API Token 是否有效
+        run: |
+          set -uo pipefail
+          echo "token 长度: ${#CLOUDFLARE_API_TOKEN} | account id 长度: ${#CLOUDFLARE_ACCOUNT_ID}"
+          code=$(curl -s -o /tmp/cf.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            https://api.cloudflare.com/client/v4/accounts)
+          echo "GET /accounts -> HTTP $code"
+          head -c 400 /tmp/cf.json; echo
+          if [ "$code" != "200" ]; then
+            echo "::error title=API Token 被 Cloudflare 拒绝::上面是 Cloudflare 的原话，9109 = 令牌值无效"
+            exit 1
+          fi
+          if ! grep -q "$CLOUDFLARE_ACCOUNT_ID" /tmp/cf.json; then
+            echo "::warning::token 有效，但账号列表里没有 CLOUDFLARE_ACCOUNT_ID"
+          fi
+          echo "token 有效"
+
       - name: Check the views render
         run: npm run check
 
