@@ -6,7 +6,7 @@ import { icons } from './icons.js';
  * after every add / quantity change, so `public/js/site.js` only has to swap
  * innerHTML.
  */
-export const cartDrawerContent = (settings, cart, symbol = '£') => {
+export const cartDrawerContent = (settings, cart, symbol = '¥') => {
   if (!cart.items.length) {
     return html`
       <div class="container-fluid border-top border-secondary border-1 pt-2">
@@ -58,7 +58,7 @@ export const cartDrawerContent = (settings, cart, symbol = '£') => {
     </div>`;
 };
 
-export const cartDrawer = (settings, cart, symbol = '£') => html`
+export const cartDrawer = (settings, cart, symbol = '¥') => html`
   <div class="offcanvas offcanvas-end cart--offcanvas" data-bs-backdrop="static" tabindex="-1" id="cart" aria-labelledby="cartDrawerLabel">
     <div class="offcanvas-header py-3 d-flex justify-content-between px-3">
       <h5 class="offcanvas-title d-flex align-items-center fw-light mb-0" id="cartDrawerLabel">

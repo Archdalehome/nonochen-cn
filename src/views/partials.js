@@ -40,13 +40,13 @@ export const colourSwatches = ({ colours = [], limit = 4, link = '' }) => {
  * `lib/db.js`), not how its price reads - so a card always shows the plain
  * figure, with no "from" in front of it.
  */
-export const priceLabel = (product, symbol = '£') => {
+export const priceLabel = (product, symbol = '¥') => {
   const sizes = product.sizes || [];
   const cheapest = sizes.length ? Math.min(...sizes.map((size) => Number(size.price))) : Number(product.price);
   return html`<span class="js--product--price">${money(cheapest, symbol)}</span>`;
 };
 
-export const productCard = (product, { symbol = '£', columnClass = 'col-6 col-md-4 col-lg-3' } = {}) => html`
+export const productCard = (product, { symbol = '¥', columnClass = 'col-6 col-md-4 col-lg-3' } = {}) => html`
   <div class="${columnClass} product-card mb-4 mb-md-5">
     <a href="/products/${product.handle}" class="d-flex w-100 h-100 text-decoration-none text-reset" data-product-id="${product.id}">
       <div class="product d-flex flex-column justify-content-between w-100 position-relative">

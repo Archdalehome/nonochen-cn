@@ -36,7 +36,7 @@
       badge.classList.toggle('d-none', !data.count);
     });
     $$('[data-cart-subtotal]').forEach((node) => {
-      node.textContent = `£${Number(data.subtotal).toFixed(2)}`;
+      node.textContent = `¥${Number(data.subtotal).toFixed(2)}`;
     });
   };
 
@@ -127,7 +127,7 @@
     const syncPrice = () => {
       const checked = radios.filter((radio) => radio.checked)[0];
       const price = checked ? checked.dataset.variantPrice : basePrice;
-      if (priceLabel && price) priceLabel.textContent = `£${Number(price).toFixed(2)}`;
+      if (priceLabel && price) priceLabel.textContent = `¥${Number(price).toFixed(2)}`;
       $$('.variant-option', form).forEach((option) => {
         const input = $('input', option);
         option.classList.toggle('is-active', Boolean(input && input.checked));
@@ -194,6 +194,74 @@
   $$('[data-admin-confirm]').forEach((form) => {
     form.addEventListener('submit', (event) => {
       if (!window.confirm(form.dataset.adminConfirm)) event.preventDefault();
+    });
+  });
+
+  // The repeaters on the product screen (specs, features, sizes, colours, the
+  // gallery). The rows post as arrays in DOM order, so moving a row here is what
+  // stores it in that order. Without JS the form still posts every row it
+  // rendered - only adding, removing and reordering need this.
+  $$('[data-repeat]').forEach((group) => {
+    const list = group.querySelector('[data-repeat-list]');
+    const template = group.querySelector('template[data-repeat-template]');
+    const add = group.querySelector('[data-repeat-add]');
+    if (!list || !template) return;
+
+    const rows = () => Array.from(list.querySelectorAll('[data-repeat-row]'));
+
+    if (add) {
+      add.addEventListener('click', () => {
+        const row = template.content.firstElementChild.cloneNode(true);
+        list.appendChild(row);
+        const first = row.querySelector('input, select');
+        if (first) first.focus();
+      });
+    }
+
+    group.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-repeat-remove], [data-repeat-move]');
+      if (!button) return;
+      const row = button.closest('[data-repeat-row]');
+      if (!row) return;
+      if (button.hasAttribute('data-repeat-remove')) {
+        const all = rows();
+        // Keep one row on screen: an empty list has no inputs and the section
+        // then reads as if it had been removed.
+        if (all.length > 1) row.remove();
+        else row.querySelectorAll('input, select').forEach((input) => { input.value = ''; });
+        return;
+      }
+      const up = button.getAttribute('data-repeat-move') === 'up';
+      const sibling = up ? row.previousElementSibling : row.nextElementSibling;
+      if (sibling) list.insertBefore(up ? row : sibling, up ? sibling : row);
+    });
+
+    // Drag a row by its handle to reorder it. The handle is the row itself but
+    // only while the pointer is not inside a field, so text selection still works.
+    let dragging = null;
+    group.addEventListener('mousedown', (event) => {
+      const row = event.target.closest('[data-repeat-row]');
+      if (!row) return;
+      row.draggable = !event.target.closest('input, select, textarea, button');
+    });
+    list.addEventListener('dragstart', (event) => {
+      const row = event.target.closest('[data-repeat-row]');
+      if (!row || !row.draggable) return;
+      dragging = row;
+      row.classList.add('opacity-50');
+      event.dataTransfer.effectAllowed = 'move';
+    });
+    list.addEventListener('dragover', (event) => {
+      if (!dragging) return;
+      event.preventDefault();
+      const over = event.target.closest('[data-repeat-row]');
+      if (!over || over === dragging) return;
+      const box = over.getBoundingClientRect();
+      list.insertBefore(dragging, event.clientY < box.top + box.height / 2 ? over : over.nextElementSibling);
+    });
+    list.addEventListener('dragend', () => {
+      if (dragging) dragging.classList.remove('opacity-50');
+      dragging = null;
     });
   });
 

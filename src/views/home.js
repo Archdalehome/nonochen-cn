@@ -56,7 +56,7 @@ export const hero = (section) => {
 
 /* ------------------------------------------------------------- product row ---- */
 
-export const productRow = (section, rows, symbol = '£', siteUrl = '') => {
+export const productRow = (section, rows, symbol = '¥', siteUrl = '') => {
   const tabs = rows || [];
   if (!tabs.length) return '';
   const viewAll = section.data.view_all;
@@ -197,7 +197,7 @@ export const newsletter = (settings) => html`
 
 /* ---------------------------------------------------------------- dispatch ---- */
 
-export const renderSections = (list, { products = {}, settings, symbol = '£' }) =>
+export const renderSections = (list, { products = {}, settings, symbol = '¥' }) =>
   list.map((section) => {
     switch (section.type) {
       case 'hero':

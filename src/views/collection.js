@@ -10,7 +10,7 @@ export const SORTS = [
 ];
 
 /** The list of collections (`/collections`). */
-export const collectionIndex = ({ list, symbol = '£' }) => html`
+export const collectionIndex = ({ list, symbol = '¥' }) => html`
   <section class="py-4 py-md-5">
     <div class="container">
       ${breadcrumbs([{ label: '首页', url: '/' }, { label: '系列' }], 'mb-3')}
@@ -30,7 +30,7 @@ export const collectionIndex = ({ list, symbol = '£' }) => html`
     </div>
   </section>`;
 
-export const collectionView = ({ collection: current, products, sort = 'featured', symbol = '£' }) => html`
+export const collectionView = ({ collection: current, products, sort = 'featured', symbol = '¥' }) => html`
   <section class="collection-hero text-center pt-4 pb-2">
     <div class="container">
       ${breadcrumbs([{ label: '首页', url: '/' }, { label: current.title }])}

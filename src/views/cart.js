@@ -2,7 +2,7 @@ import { html, money } from '../lib/html.js';
 import { icons } from './icons.js';
 import { breadcrumbs } from './partials.js';
 
-export const cartSummary = (cart, symbol = '£') => html`
+export const cartSummary = (cart, symbol = '¥') => html`
   <div class="cart-summary border rounded-3 p-4 bg-white">
     <h2 class="h5 fw-normal mb-3">订单摘要</h2>
     <div class="d-flex justify-content-between fs-7 mb-2">
@@ -49,7 +49,7 @@ const cartLine = (item, symbol) => html`
     </div>
   </li>`;
 
-export const cartPage = ({ cart, settings, symbol = '£' }) => html`
+export const cartPage = ({ cart, settings, symbol = '¥' }) => html`
   <div class="container pt-3">
     ${breadcrumbs([{ label: '首页', url: '/' }, { label: '购物车' }])}
   </div>
@@ -73,7 +73,7 @@ export const cartPage = ({ cart, settings, symbol = '£' }) => html`
     </div>
   </section>`;
 
-export const checkoutPage = ({ cart, symbol = '£' }) => html`
+export const checkoutPage = ({ cart, symbol = '¥' }) => html`
   <div class="container pt-3">
     ${breadcrumbs([{ label: '首页', url: '/' }, { label: '购物车', url: '/cart' }, { label: '结账' }])}
   </div>

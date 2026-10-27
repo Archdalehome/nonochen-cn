@@ -119,10 +119,10 @@ export const PRODUCT_ERRORS = {
   filter: '这个分类会列出全部商品，因此没有需要添加或移除的内容。',
 };
 
-/** "£249.50", " 1,249.5 " and "249" all read as numbers; blanks as null, junk as NaN. */
+/** "¥249.50", " 1,249.5 " and "249" all read as numbers; blanks as null, junk as NaN. */
 const toPrice = (value) => {
   const raw = String(value === undefined || value === null ? '' : value)
-    .replace(/[£$€,\s]/g, '')
+    .replace(/[¥$€,\s]/g, '')
     .trim();
   if (!raw) return null;
   const number = Number(raw);
@@ -133,6 +133,101 @@ const flag = (data, name, fallback) => {
   const raw = data[name];
   if (raw === undefined) return fallback;
   return String(raw) === '0' ? 0 : 1;
+};
+
+/**
+ * The product form posts its repeaters as `name="spec_label[]"` and friends, so
+ * a field arrives either as a string (one row) or as an array (many rows). Both
+ * shapes are read the same way here.
+ */
+const asList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (value === undefined || value === null || value === '') return [];
+  return [value];
+};
+
+const text = (value, max) => String(value === undefined || value === null ? '' : value).trim().slice(0, max);
+
+/** A path on this site or a full URL - the same rule the single image field uses. */
+const isMediaPath = (value) => value.startsWith('/') || /^https?:\/\//.test(value);
+
+export const PRODUCT_LIMITS = { specs: 40, features: 40, sizes: 20, colours: 12, media: 24 };
+
+/**
+ * The four repeaters under the product fields: the specification table, the
+ * feature bullets, the size/colour variants and the media gallery. Every row is
+ * trimmed, empty rows are dropped and each list has a hard cap, so a paste of
+ * 500 rows cannot fill the table.
+ */
+export const productDetails = (data) => {
+  const specLabels = asList(data.spec_label);
+  const specValues = asList(data.spec_value);
+  const specs = [];
+  for (let index = 0; index < specLabels.length && specs.length < PRODUCT_LIMITS.specs; index += 1) {
+    const label = text(specLabels[index], 60);
+    if (!label) continue;
+    specs.push({ label, value: text(specValues[index], 200) });
+  }
+
+  const features = [];
+  for (const row of asList(data.feature)) {
+    const value = text(row, 120);
+    if (!value) continue;
+    if (features.length >= PRODUCT_LIMITS.features) break;
+    features.push(value);
+  }
+
+  const sizeNames = asList(data.size_name);
+  const sizePrices = asList(data.size_price);
+  const sizes = [];
+  for (let index = 0; index < sizeNames.length && sizes.length < PRODUCT_LIMITS.sizes; index += 1) {
+    const name = text(sizeNames[index], 60);
+    if (!name) continue;
+    const price = toPrice(sizePrices[index]);
+    sizes.push({ name, price: Number.isNaN(price) ? null : price });
+  }
+
+  const colourNames = asList(data.colour_name);
+  // The row's swatch is `colour_swatch[]`; `colour_hex` is the single swatch of
+  // the product itself, which is a different field on the same form.
+  const colourHexes = asList(data.colour_swatch);
+  const colours = [];
+  for (let index = 0; index < colourNames.length && colours.length < PRODUCT_LIMITS.colours; index += 1) {
+    const name = text(colourNames[index], 60);
+    if (!name) continue;
+    const hex = text(colourHexes[index], 20).toLowerCase();
+    colours.push({ name, hex: /^#[0-9a-f]{3,8}$/.test(hex) ? hex : '#18181b' });
+  }
+
+  const mediaSources = asList(data.media_src);
+  const mediaKinds = asList(data.media_kind);
+  const media = [];
+  for (let index = 0; index < mediaSources.length && media.length < PRODUCT_LIMITS.media; index += 1) {
+    const src = text(mediaSources[index], 300);
+    if (!src || !isMediaPath(src)) continue;
+    media.push({ kind: String(mediaKinds[index] || 'image') === 'video' ? 'video' : 'image', src });
+  }
+
+  // `has_details` is written by the form itself: an older page, or a plain POST
+  // from a script, must never wipe the rows a product already has.
+  const hasDetails = String(data.has_details || '') === '1';
+  // A product with no size at all cannot be bought: the storefront falls back to
+  // a plain "add to basket" without a variant. A new product starts with one
+  // default size, priced by the product's own price.
+  if (hasDetails && !sizes.length) sizes.push({ name: '默认', price: null });
+
+  return { hasDetails, specs, features, sizes, colours, media };
+};
+
+/**
+ * A title in Chinese has no a-z/digit to slug from, so it needs a stable
+ * fallback - the same title always lands on the same alias, which keeps a
+ * re-saved form from renaming the product's URL.
+ */
+const fallbackHandle = (title) => {
+  let hash = 5381
+  for (const character of title) hash = (hash * 33 + character.codePointAt(0)) >>> 0
+  return 'item-' + hash.toString(36)
 };
 
 /**
@@ -148,6 +243,7 @@ export const normalizeProduct = (data) => {
     .trim()
     .toLowerCase();
   if (!handle) handle = slugify(title).slice(0, 80);
+  if (!handle) handle = fallbackHandle(title);
   const image = String(data.image || '').trim().slice(0, 300);
   const price = toPrice(data.price);
   const compareAtPrice = toPrice(data.compare_at_price);
@@ -180,7 +276,7 @@ export const normalizeProduct = (data) => {
       image,
       catHandle: String(data.cat_handle || '').trim().toLowerCase().slice(0, 60),
       catLabel: String(data.cat_label || '').trim().slice(0, 60),
-      colourHex: String(data.colour_hex || '').trim().slice(0, 20) || '#5f6062',
+      colourHex: (typeof data.colour_hex === 'string' ? data.colour_hex : '').trim().slice(0, 20) || '#5f6062',
       summary: String(data.summary || '').trim().slice(0, 300),
       description: String(data.description || '').trim().slice(0, 2000),
       // The collection a product belongs to comes from the category it was added
@@ -192,6 +288,7 @@ export const normalizeProduct = (data) => {
       sortOrder,
       seoTitle: String(data.seo_title || '').trim().slice(0, 120),
       seoDescription: String(data.seo_description || '').trim().slice(0, 300),
+      ...productDetails(data),
     },
   };
 };

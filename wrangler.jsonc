@@ -36,7 +36,8 @@
     //   npx wrangler secret put ADMIN_USER
     //   npx wrangler secret put ADMIN_PASSWORD
     "SITE_NAME": "Chen Furniture",
-    "CURRENCY": "GBP",
-    "CURRENCY_SYMBOL": "£"
+    // 内销站：人民币。改的是币种与符号，库里的价格数字一个没动。
+    "CURRENCY": "CNY",
+    "CURRENCY_SYMBOL": "¥"
   }
 }

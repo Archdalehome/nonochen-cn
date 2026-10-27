@@ -142,7 +142,7 @@ const productScreen = render(
         },
       ],
       picker: [],
-      symbol: '£',
+      symbol: '¥',
     }),
   })
 )
@@ -153,7 +153,7 @@ const emptyProductScreen = render(
     category: { id: 1, slug: 'outdoor-range', name: '户外系列', href: '/category/outdoor-range', filterType: 'collection', filterValue: 'outdoor-range' },
     list: [],
     picker: [],
-    symbol: '£',
+    symbol: '¥',
   })
 )
 expectIn('/admin/categories/products (empty)', emptyProductScreen, ['暂无可编辑的商品'])
@@ -163,15 +163,15 @@ const login = render(admin.loginView({ siteName: 'Chen Furniture', error: '', ne
 expectIn('/admin/login', login, ['登录后即可管理店铺', 'name="username"', 'name="password"'])
 
 /* 空购物车 ---------------------------------------------------------------- */
-const emptyCart = render(cart.cartPage({ cart: { items: [], subtotal: 0 }, settings: {}, symbol: '£' }))
+const emptyCart = render(cart.cartPage({ cart: { items: [], subtotal: 0 }, settings: {}, symbol: '¥' }))
 expectIn('/cart (empty)', emptyCart, ['购物车是空的', '继续选购'])
 
-const drawer = render(drawerView.cartDrawer({}, { items: [], subtotal: 0 }, '£'))
+const drawer = render(drawerView.cartDrawer({}, { items: [], subtotal: 0 }, '¥'))
 expectIn('/cart/drawer (empty)', drawer, ['购物车是空的', '继续选购'])
 
 /* 站点根路径 -------------------------------------------------------------- */
 const page = render(
-  cart.checkoutPage({ cart: { items: [{ id: 1, handle: 'x', title: 'X', image: '/x.png', qty: 1, lineTotal: 1 }], subtotal: 1 }, symbol: '£' })
+  cart.checkoutPage({ cart: { items: [{ id: 1, handle: 'x', title: 'X', image: '/x.png', qty: 1, lineTotal: 1 }], subtotal: 1 }, symbol: '¥' })
 )
 expectIn('/checkout', page, ['订单摘要', '小计', '合计'])
 

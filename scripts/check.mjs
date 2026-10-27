@@ -64,7 +64,7 @@ for (const product of products) {
   const card = render(
     productCard(
       { ...product, id: product.sort, image: '/images/placeholder.png' },
-      { symbol: '£' }
+      { symbol: '¥' }
     )
   );
   if (!card.includes(product.handle)) failures.push(`views: productCard did not render ${product.handle}`);
@@ -288,7 +288,7 @@ if (hidden !== null) failures.push('db: categoryOfProduct should skip a category
 const orphan = await categoryOfProduct(stubDb, { ...filedProduct, cat_handle: '', cat_label: '', collection_handle: 'gone' });
 if (orphan !== null) failures.push('db: categoryOfProduct invented a category for a product that has none');
 
-const detail = render(productPage({ product: filedProduct, settings: {}, symbol: '£', category: filed }));
+const detail = render(productPage({ product: filedProduct, settings: {}, symbol: '¥', category: filed }));
 if (!detail.includes('<a class="text-secondary" href="/">首页</a>')) {
   failures.push('views: the product breadcrumb did not start at 首页');
 }
@@ -298,7 +298,7 @@ if (!detail.includes('<a class="text-secondary" href="/collections/accessories">
 if (detail.includes('/collections/b-blanket')) {
   failures.push('views: the product breadcrumb still points at the product collection');
 }
-const looseProduct = render(productPage({ product: filedProduct, settings: {}, symbol: '£' }));
+const looseProduct = render(productPage({ product: filedProduct, settings: {}, symbol: '¥' }));
 if (!looseProduct.includes('<a class="text-secondary" href="/products">全部商品</a>')) {
   failures.push('views: a product without a category should breadcrumb through 全部商品');
 }
@@ -362,7 +362,7 @@ const categoryProducts = render(
         { id: 7, title: 'B-Bag - Grey', cat_handle: 'outdoor', cat_label: 'Outdoor', collection_handle: 'outdoor-range' },
         { id: 9, title: 'B-Lamp - Grey', cat_handle: 'lighting', cat_label: 'Lighting', collection_handle: 'indoor-range' },
       ],
-      symbol: '£',
+      symbol: '¥',
     }),
     flash: { kind: 'success', message: 'Product saved.' },
   })
@@ -391,7 +391,7 @@ if (categoryProducts.includes('<option value="7">')) {
   failures.push('views: the add-product picker offered a product that is already in the category');
 }
 
-const product = normalizeProduct({ title: 'B-Bag  Grey', price: '£249.50', image: '/images/b-bag-grey.png' });
+const product = normalizeProduct({ title: 'B-Bag  Grey', price: '¥249.50', image: '/images/b-bag-grey.png' });
 if (product.error) failures.push(`admin: a valid product was rejected (${product.error})`);
 if (product.values.handle !== 'b-bag-grey') failures.push(`admin: expected slug b-bag-grey, got ${product.values.handle}`);
 if (product.values.price !== 249.5) failures.push(`admin: a price with a currency symbol should parse (${product.values.price})`);
@@ -414,6 +414,59 @@ if (normalizeProduct({ title: 'X', price: '1', image: '/x.png', sort_order: 'lat
 }
 if (normalizeProduct({ title: 'X', price: '1', image: '/x.png', sold_out: '0' }).values.soldOut !== 0) {
   failures.push('admin: an unchecked sold out switch should save 0');
+}
+
+// The product screen's four repeaters: specs, feature bullets, sizes/colours and
+// the media gallery. They post as `name="..."[]` arrays and are written to
+// `products.specs` / `products.features`, `product_variants` and `product_media`
+// by `saveProductDetails` - `scripts/verify-product-editor.mjs` runs that path
+// against a seeded SQLite database.
+const repeated = normalizeProduct({
+  title: '真皮方形脚凳',
+  handle: 'leather-square-ottoman',
+  price: '2680',
+  image: '/images/ottoman.png',
+  has_details: '1',
+  spec_label: ['尺寸', '  ', '材质'],
+  spec_value: ['62 × 62 × 40 cm', '', '头层牛皮'],
+  feature: ['头层牛皮', '  ', '可拆洗'],
+  size_name: ['中号', '大号'],
+  size_price: ['2680', ''],
+  colour_name: ['焦糖棕', '深咖'],
+  colour_swatch: ['#8b5e3c', 'not-a-colour'],
+  media_src: ['/images/a.png', '/images/b.mp4', 'images/c.png'],
+  media_kind: ['image', 'video', 'image'],
+});
+if (repeated.error) failures.push(`admin: the repeater form was rejected (${repeated.error})`);
+if (repeated.values.specs.length !== 2 || repeated.values.specs[1].label !== '材质') {
+  failures.push(`admin: the spec table should keep its filled rows only (${JSON.stringify(repeated.values.specs)})`);
+}
+if (repeated.values.features.length !== 2) failures.push('admin: blank feature bullets should be dropped');
+if (repeated.values.sizes.length !== 2) failures.push('admin: both sizes should be kept');
+if (repeated.values.sizes[1].price !== null) failures.push('admin: a blank size price should mean "use the product price"');
+if (repeated.values.colours.length !== 2) failures.push('admin: both colours should be kept');
+if (repeated.values.colours[1].hex !== '#18181b') {
+  failures.push(`admin: a colour without a valid hex should fall back to the default (${repeated.values.colours[1].hex})`);
+}
+if (repeated.values.media.length !== 2 || repeated.values.media[1].kind !== 'video') {
+  failures.push('admin: the gallery should keep valid paths and drop a relative one');
+}
+const emptySizes = normalizeProduct({ title: 'X', price: '1', image: '/x.png', has_details: '1' });
+if (emptySizes.values.sizes.length !== 1 || emptySizes.values.sizes[0].name !== '默认') {
+  failures.push('admin: a product with no size should still get one default size');
+}
+if (normalizeProduct({ title: 'X', price: '1', image: '/x.png' }).values.hasDetails !== false) {
+  failures.push('admin: a form without has_details should not rewrite the product details');
+}
+// A Chinese title has nothing to slug from, so it falls back to a stable alias
+// instead of failing the save.
+const chineseOnly = normalizeProduct({ title: '真皮方形脚凳', price: '2680', image: '/images/x.png' });
+if (chineseOnly.error) failures.push(`admin: a Chinese title alone should save (${chineseOnly.error})`);
+if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(chineseOnly.values.handle)) {
+  failures.push(`admin: a Chinese title should fall back to a valid alias (${chineseOnly.values.handle})`);
+}
+if (normalizeProduct({ title: '真皮方形脚凳', price: '2680', image: '/images/x.png' }).values.handle !== chineseOnly.values.handle) {
+  failures.push('admin: the fallback alias should be stable for the same title');
 }
 
 // 7. the home page screen (the announcement bar and the hero) and its rules
@@ -916,7 +969,7 @@ if (
 // A database that still holds the row must not bring it back either.
 const leftoverPicker = render(
   storefrontFooter(
-    { ...footerSettings, country_options: '[{"code":"GB","label":"United Kingdom (£)","selected":1}]' },
+    { ...footerSettings, country_options: '[{"code":"GB","label":"United Kingdom (¥)","selected":1}]' },
     footerGroups
   )
 );

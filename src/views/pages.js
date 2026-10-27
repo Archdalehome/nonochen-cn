@@ -40,7 +40,7 @@ export const contentPage = ({ handle, list }) => {
     </section>`;
 };
 
-export const searchPage = ({ term, products, symbol = '£' }) => html`
+export const searchPage = ({ term, products, symbol = '¥' }) => html`
   <div class="container pt-3">
     ${breadcrumbs([{ label: '首页', url: '/' }, { label: '搜索' }])}
   </div>

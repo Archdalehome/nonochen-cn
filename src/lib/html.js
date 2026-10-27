@@ -39,7 +39,7 @@ export const join = (separator) => (items) => safe((items || []).map(part).join(
 
 /* ------------------------------------------------------------------ money ---- */
 
-export const money = (amount, symbol = '£') => {
+export const money = (amount, symbol = '¥') => {
   const value = Number(amount || 0);
   return `${symbol}${value.toFixed(2)}`;
 };

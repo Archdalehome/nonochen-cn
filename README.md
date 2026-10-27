@@ -11,7 +11,7 @@ migrations and tagged-template views.
 
 ## 内销中文站：本地化范围与未完成项
 
-这一支是 `nonochen` 的中文版（内销站），只做了界面中文化，**没有动价格与承诺**。
+这一支是 `nonochen` 的中文版（内销站）：界面中文化、币种改为人民币，但**库里的价格数字与承诺话术没动**。
 
 已完成：
 
@@ -20,17 +20,31 @@ migrations and tagged-template views.
   的**用户可见文案**全部改为中文；`<html lang>` 改为 `zh-CN`。
 - `migrations/0013_zh_copy.sql`：D1 里 `settings`（购物车、搜索、商品页表单标题、订阅区、版权行）
   与 `menu_items`（页脚栏目名与链接名）的中文改写，幂等，可重复执行。
+- **币种**：`wrangler.jsonc` 的 `CURRENCY=CNY` / `CURRENCY_SYMBOL=¥`，视图里的 `symbol = '¥'` 默认值、
+  `money()` 默认值、`public/js/site.js` 的两处符号、商品页结构化数据的 `priceCurrency: 'CNY'`。
+  **价格数字一个没动**（演示商品反正要整套换），人民币定价仍待业主给价目表。
+- **后台商品页的四个明细编辑器**：规格表、卖点、尺寸/颜色变体、图片视频图集。写回
+  `products.specs` / `products.features`（JSON）、`product_variants`、`product_media`。行可增删、
+  用 ↑↓ 或拖拽排序；图集既可填路径也可多选上传（需要绑 R2）。表单带 `has_details` 标记，
+  旧页面或脚本提交不会冲掉已有明细；新建商品没有尺寸时自动补一条「默认」。
 
 仍未中文化 / 需业主定稿后才能动：
 
-- **价格与货币**：`CURRENCY: "GBP"`、`£`、`src/views/*.js` 里的默认 `symbol`、`public/js/site.js`
-  的 `£` 全部原样保留。改人民币涉及定价，需要业主给价目表或汇率与取整规则。
 - **承诺类文案**：`settings` 里的 `announcement_text`（免邮公告）、`brand_line`（品牌话术）、
   `cart_footer_note`、`pdp_trust_1/2`、`pdp_geo_note`、`ship_accordion_body`、`returns_note`
-  保持英文原样；`src/views/product.js` 的 `Free UK delivery on orders over £75…` 也没有翻——
+  保持英文原样；`src/views/product.js` 的 `Free UK delivery on orders over ¥75…` 也没有翻——
   这些是免邮、交期、质保类承诺，改写成中文等于对外承诺，需要业主终审。
 - **商品与内容数据**：`migrations/0002_seed.sql` 的 120KB 演示商品与页面正文仍是英文；如果这些不是
   真实商品，需要业主给真实品名、规格、价格、图片对应关系后整套替换，再补中文化。
+
+## 自检脚本（不需要网络）
+
+| 命令 | 检查什么 |
+| --- | --- |
+| `npm run check` | 所有模块能解析、视图能渲染、种子数据与 schema 对齐 |
+| `node --experimental-sqlite scripts/verify-product-editor.mjs` | 用内存 SQLite 跑完整链路：保存表单（2 尺寸 / 3 颜色 / 4 图 / 2 规格 / 3 卖点）→ 前台渲染 → 再存一次不重复 → 旧提交不丢数据 → 后台回填 |
+| `node scripts/verify-smoke-cn.mjs` | 冒烟脚本里的中文断言是否与本地渲染结果一致 |
+| `node --experimental-sqlite scripts/shot-product-editor.mjs` | 渲染后台商品页与前台商品页到 `.shot/`，可配合无头浏览器截图 |
 
 ## Stack
 

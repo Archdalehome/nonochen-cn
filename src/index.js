@@ -35,9 +35,11 @@ import {
   productHandleTaken,
   productList,
   productPicker,
+  mediaByProduct,
   productsByCategory,
   relatedProducts,
   removeProductFromCategory,
+  saveProductDetails,
   saveSectionData,
   saveSectionEnabled,
   saveSettings,
@@ -131,7 +133,7 @@ const notFound = (ctx, message = '没有找到这个页面。') =>
 
 /* ------------------------------------------------------------------- chrome ---- */
 
-const currencySymbol = (env) => env.CURRENCY_SYMBOL || '£';
+const currencySymbol = (env) => env.CURRENCY_SYMBOL || '¥';
 
 /** Everything the layout needs: settings, the footer, the cart and the header categories. */
 const chrome = async (request, env) => {
@@ -275,7 +277,7 @@ const productRoute = async (request, env, ctx, handle) => {
       brand: { '@type': 'Brand', name: 'Chen Furniture' },
       offers: {
         '@type': 'Offer',
-        priceCurrency: 'GBP',
+        priceCurrency: 'CNY',
         price: price.toFixed(2),
         availability: product.soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
       },
@@ -405,6 +407,18 @@ const PRODUCT_NOTICES = {
   'product-taken': {
     kind: 'danger',
     message: '这个商品已经在另一个分类里。一个商品同时只能属于一个分类：请先从另一个分类中移除。',
+  },
+  'product-media-storage': {
+    kind: 'danger',
+    message: '这个 Worker 没有绑定 R2 存储桶，图集里的文件传不上去：请改为填写站内路径，或先在别处上传。',
+  },
+  'product-media-type': {
+    kind: 'danger',
+    message: '图集只收图片（JPEG / PNG / WebP / AVIF）和视频（MP4 / WebM / MOV），这个文件类型不支持。',
+  },
+  'product-media-size': {
+    kind: 'danger',
+    message: '图集里的文件太大了，单个文件上限 25 MB。',
   },
 };
 
@@ -917,18 +931,26 @@ const adminCategoryProductsPage = async (request, env, user) => {
     productCategoryIndex(env.DB),
     collectionHandles(env.DB),
   ]);
+  // The gallery sits in its own table, so the editors below get it attached to
+  // the product rows they already render.
+  const gallery = await mediaByProduct(
+    env.DB,
+    list.map((item) => item.id)
+  );
+  const withGallery = list.map((item) => ({ ...item, media: gallery.get(item.id) || [] }));
   return adminResponse({
     env,
     user,
     title: `${category.name} 中的商品`,
     body: categoryProductsView({
       category,
-      list,
+      list: withGallery,
       picker,
       owners,
       collections: handles,
       symbol: currencySymbol(env),
       limit: ADMIN_PRODUCT_LIMIT,
+      mediaBound: Boolean(env.MEDIA),
     }),
     flash: adminNotice(url, PRODUCT_NOTICES),
   });
@@ -938,11 +960,30 @@ const adminCategoryProductsPage = async (request, env, user) => {
 const productFormContext = async (request, env) => {
   const data = await readForm(request);
   const category = await categoryBySlug(env.DB, String(data.category_slug || ''));
-  return { data, category };
+  return { data, category, files: data.files || [] };
+};
+
+/**
+ * Stores the files picked in the product form's gallery field and appends them
+ * to `values.media`, after the rows the screen already listed. Nothing is
+ * uploaded when the MEDIA bucket is missing - the screen says so and only paths
+ * work there.
+ */
+const storeProductUploads = async (env, files, values) => {
+  if (!files.length) return { error: '' };
+  if (!env.MEDIA) return { error: 'media-storage' };
+  const room = Math.max(0, 24 - values.media.length);
+  for (const item of files.slice(0, room)) {
+    const kind = /^video\//.test(item.file.type) ? 'video' : 'image';
+    const stored = await storeMediaFile(env, item.file, kind, 'products');
+    if (stored.error) return { error: stored.error === 'size' ? 'media-size' : 'media-type' };
+    values.media.push({ kind, src: stored.path });
+  }
+  return { error: '' };
 };
 
 const adminProductCreate = async (request, env) => {
-  const { data, category } = await productFormContext(request, env);
+  const { data, category, files } = await productFormContext(request, env);
   if (!category) return redirect('/admin/categories?error=missing');
   const { error, values } = normalizeProduct(data);
   if (error) return redirect(productScreen(category.slug, `error=product-${error}`));
@@ -954,11 +995,18 @@ const adminProductCreate = async (request, env) => {
   if (!id) return redirect(productScreen(category.slug, 'error=product-missing'));
   // The new product lands in the category it was created from.
   await addProductToCategory(env.DB, category, id);
+
+  const uploaded = await storeProductUploads(env, files, values);
+  if (uploaded.error) return redirect(productScreen(category.slug, `error=product-${uploaded.error}`));
+  // A product created by an older page (or a plain POST) still gets one size, so
+  // it is buyable and its editor opens with a row instead of an empty list.
+  if (!values.hasDetails) values.sizes = [{ name: '默认', price: null }];
+  await saveProductDetails(env.DB, id, values);
   return redirect(productScreen(category.slug, 'flash=product-created'));
 };
 
 const adminProductSave = async (request, env) => {
-  const { data, category } = await productFormContext(request, env);
+  const { data, category, files } = await productFormContext(request, env);
   if (!category) return redirect('/admin/categories?error=missing');
   const id = Number(data.id) || 0;
   if (!id) return redirect(productScreen(category.slug, 'error=product-missing'));
@@ -969,7 +1017,12 @@ const adminProductSave = async (request, env) => {
   }
 
   const saved = await updateProduct(env.DB, id, values);
-  return redirect(productScreen(category.slug, saved ? 'flash=product-saved' : 'error=product-missing'));
+  if (!saved) return redirect(productScreen(category.slug, 'error=product-missing'));
+
+  const uploaded = await storeProductUploads(env, files, values);
+  if (uploaded.error) return redirect(productScreen(category.slug, `error=product-${uploaded.error}`));
+  if (values.hasDetails) await saveProductDetails(env.DB, id, values);
+  return redirect(productScreen(category.slug, 'flash=product-saved'));
 };
 
 /** Adds a product that is already in the catalogue to the category. */
@@ -1075,13 +1128,38 @@ const readForm = async (request) => {
   const type = request.headers.get('content-type') || '';
   if (type.includes('application/json')) {
     try {
-      return (await request.json()) || {};
+      const data = (await request.json()) || {};
+      Object.defineProperty(data, 'files', { value: [], enumerable: false });
+      return data;
     } catch {
       return {};
     }
   }
   const form = await request.formData();
-  return Object.fromEntries([...form.entries()].map(([key, value]) => [key, typeof value === 'string' ? value : '']));
+  const data = {};
+  const files = [];
+  for (const [key, value] of form.entries()) {
+    // A picked file never reaches the text fields: it is collected here for the
+    // handful of screens that store uploads, and skipped everywhere else.
+    if (value && typeof value === 'object' && typeof value.stream === 'function') {
+      if (value.size) files.push({ input: key, file: value });
+      continue;
+    }
+    // The product screen posts its repeaters as `name="..."[]`, so those keys
+    // arrive many times. They become arrays, in the order the rows sit in the
+    // form; every other key keeps the old last-one-wins behaviour.
+    if (key.endsWith('[]')) {
+      const name = key.slice(0, -2);
+      if (!Array.isArray(data[name])) data[name] = [];
+      data[name].push(value);
+      continue;
+    }
+    data[key] = value;
+  }
+  // Non-enumerable, so the handlers that read `data.title` keep working
+  // unchanged and nothing that is not a file ever sees this key.
+  Object.defineProperty(data, 'files', { value: files, enumerable: false });
+  return data;
 };
 
 const wantsJson = (request) =>
@@ -1213,7 +1291,7 @@ const checkoutSubmitRoute = async (request, env, ctx) => {
     name: String(data.name || ''),
     email: String(data.email || ''),
     message: [
-      `小计：£${cart.subtotal.toFixed(2)}`,
+      `小计：¥${cart.subtotal.toFixed(2)}`,
       `地址：${data.address || ''}`,
       lines,
       data.message ? `备注：${data.message}` : '',

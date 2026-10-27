@@ -644,8 +644,8 @@ export const createProduct = async (db, values) => {
       `INSERT INTO products (handle, title, short_title, price, compare_at_price, price_from, badge, image,
                              cat_handle, cat_label, colour, colour_hex, summary, description,
                              collection_handle, sold_out, is_new, show_in_home_grid, sort_order,
-                             seo_title, seo_description)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21)`
+                             seo_title, seo_description, specs, features)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23)`
     )
     .bind(
       values.handle,
@@ -668,7 +668,9 @@ export const createProduct = async (db, values) => {
       values.inGrid,
       sortOrder,
       values.seoTitle,
-      values.seoDescription
+      values.seoDescription,
+      JSON.stringify(values.specs || []),
+      JSON.stringify(values.features || [])
     )
     .run();
   invalidateProducts();
@@ -684,8 +686,9 @@ export const updateProduct = async (db, id, values) => {
               price_from = ?6, badge = ?7, image = ?8, cat_handle = ?9, cat_label = ?10,
               colour_hex = ?11, summary = ?12, description = ?13, sold_out = ?14, is_new = ?15,
               show_in_home_grid = ?16, sort_order = COALESCE(?17, sort_order),
-              seo_title = ?18, seo_description = ?19
-        WHERE id = ?20`
+              seo_title = ?18, seo_description = ?19,
+              specs = COALESCE(?20, specs), features = COALESCE(?21, features)
+        WHERE id = ?22`
     )
     .bind(
       values.handle,
@@ -707,11 +710,110 @@ export const updateProduct = async (db, id, values) => {
       values.sortOrder,
       values.seoTitle,
       values.seoDescription,
+      // `null` means "the form did not carry the repeaters", and COALESCE keeps
+      // the stored JSON. Only the current product screen sends has_details.
+      values.hasDetails ? JSON.stringify(values.specs || []) : null,
+      values.hasDetails ? JSON.stringify(values.features || []) : null,
       Number(id) || 0
     )
     .run();
   invalidateProducts();
   return Number(result.meta && result.meta.changes) > 0;
+};
+
+/**
+ * Rewrites one kind of variant (`size` or `colour`). Rows are matched by name,
+ * so a cart line that points at an unchanged size keeps its variant id; rows the
+ * form dropped are deleted.
+ */
+const saveVariants = async (db, productId, rows, kind) => {
+  const { results: existing } = await db
+    .prepare('SELECT id, name FROM product_variants WHERE product_id = ? AND kind = ?')
+    .bind(productId, kind)
+    .all();
+  const byName = new Map((existing || []).map((row) => [String(row.name).toLowerCase(), row.id]));
+  const kept = new Set();
+  const statements = [];
+
+  rows.forEach((row, index) => {
+    const name = String(row.name || '').trim();
+    if (!name) return;
+    const hex = kind === 'colour' ? row.hex || null : null;
+    const price =
+      kind === 'size' && row.price !== null && row.price !== undefined && Number.isFinite(Number(row.price))
+        ? Number(row.price)
+        : null;
+    const id = byName.get(name.toLowerCase());
+    if (id) {
+      kept.add(id);
+      statements.push(
+        db
+          .prepare('UPDATE product_variants SET name = ?, hex = ?, price = ?, sort_order = ?, available = 1 WHERE id = ?')
+          .bind(name, hex, price, index + 1, id)
+      );
+    } else {
+      statements.push(
+        db
+          .prepare(
+            'INSERT INTO product_variants (product_id, kind, name, hex, price, available, sort_order) VALUES (?, ?, ?, ?, ?, 1, ?)'
+          )
+          .bind(productId, kind, name, hex, price, index + 1)
+      );
+    }
+  });
+
+  for (const row of existing || []) {
+    if (!kept.has(row.id)) statements.push(db.prepare('DELETE FROM product_variants WHERE id = ?').bind(row.id));
+  }
+  if (statements.length) await db.batch(statements);
+};
+
+/**
+ * Writes everything the four repeaters on the product screen edit: the size and
+ * colour variants (`product_variants`), the media gallery (`product_media`) and
+ * the specification table / feature bullets (JSON columns on `products`).
+ * `has_details` on the form is what makes this run - see `productDetails`.
+ */
+export const saveProductDetails = async (db, id, values) => {
+  const key = Number(id) || 0;
+  if (!key) return false;
+
+  await saveVariants(db, key, values.sizes || [], 'size');
+  await saveVariants(db, key, values.colours || [], 'colour');
+
+  const { results: media } = await db.prepare('SELECT id FROM product_media WHERE product_id = ?').bind(key).all();
+  const statements = (media || []).map((row) => db.prepare('DELETE FROM product_media WHERE id = ?').bind(row.id));
+  (values.media || []).forEach((row, index) => {
+    const kind = row.kind === 'video' ? 'video' : 'image';
+    statements.push(
+      db
+        .prepare('INSERT INTO product_media (product_id, kind, src, poster, span, sort_order) VALUES (?, ?, ?, ?, ?, ?)')
+        .bind(key, kind, row.src, row.poster || null, kind === 'video' ? 'col-12' : 'col-6', index + 1)
+    );
+  });
+  if (statements.length) await db.batch(statements);
+
+  invalidateProducts();
+  return true;
+};
+
+/** The gallery rows of several products at once, keyed by product id. */
+export const mediaByProduct = async (db, ids = []) => {
+  const map = new Map();
+  const keys = ids.map(Number).filter(Boolean);
+  if (!keys.length) return map;
+  const { results } = await db
+    .prepare(
+      `SELECT id, product_id, kind, src, poster, span, sort_order FROM product_media
+        WHERE product_id IN (${keys.map(() => '?').join(', ')}) ORDER BY sort_order, id`
+    )
+    .bind(...keys)
+    .all();
+  for (const row of results || []) {
+    if (!map.has(row.product_id)) map.set(row.product_id, []);
+    map.get(row.product_id).push(row);
+  }
+  return map;
 };
 
 /**

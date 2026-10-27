@@ -15,7 +15,7 @@ export const layout = ({
   cart,
   categories = [],
   path = '',
-  symbol = '£',
+  symbol = '¥',
   title,
   description = '',
   canonical = '',

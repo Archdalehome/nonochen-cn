@@ -723,7 +723,15 @@ await check('/admin/products/create', {
 
 const shelf = await check(productScreen, {
   init: { headers: admin },
-  contains: [productName, '删除商品', '从该分类移除'],
+  contains: [
+    productName,
+    '删除商品',
+    '从该分类移除',
+    'name="size_name[]"',
+    'name="colour_swatch[]"',
+    'name="media_src[]"',
+    'name="has_details" value="1"',
+  ],
 });
 const productId = (shelf.body.match(/id="p-(\d+)-title"/) || [])[1];
 if (!productId) {

@@ -284,8 +284,129 @@ const textAreaField = ({ id, name, label, value = '', rows = 2, col = 'col-12', 
     <textarea class="form-control form-control-sm" id="${id}" name="${name}" rows="${rows}" ${safe(attrs)}>${value}</textarea>
   </div>`;
 
+/** One row of a repeater: the inputs the caller passes, then the shared controls. */
+const repeatRow = (body) => html`
+  <div class="row g-2 align-items-center" data-repeat-row draggable="true">
+    ${body}
+    <div class="col-12 col-sm-auto d-flex gap-1 justify-content-end">
+      <button type="button" class="btn btn-outline-secondary btn-sm rounded px-2" data-repeat-move="up" aria-label="上移">↑</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm rounded px-2" data-repeat-move="down" aria-label="下移">↓</button>
+      <button type="button" class="btn btn-outline-danger btn-sm rounded px-2" data-repeat-remove aria-label="删除这一行">删除</button>
+    </div>
+  </div>`;
+
+/**
+ * A repeater block: a list of rows, one "add" button and the empty row the
+ * browser clones. Rows are posted as `name="..."[]` arrays in DOM order, so the
+ * arrows and the drag handle decide the stored order as well.
+ */
+const repeater = ({ title, hint, rows, template, addLabel }) => html`
+  <div class="col-12" data-repeat>
+    <div class="border rounded-3 p-3">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <div>
+          <h3 class="fs-8 text-uppercase mb-0">${title}</h3>
+          ${hint ? html`<p class="fs-8 text-secondary mb-0">${hint}</p>` : ''}
+        </div>
+        <button type="button" class="btn btn-outline-dark btn-sm rounded px-3" data-repeat-add>${addLabel}</button>
+      </div>
+      <div class="d-flex flex-column gap-2" data-repeat-list>${rows}</div>
+      <template data-repeat-template>${template}</template>
+    </div>
+  </div>`;
+
+const smallInput = ({ name, value = '', col = 'col-6', placeholder = '', type = 'text', attrs = '' }) => html`
+  <div class="${col}">
+    <input type="${type}" class="form-control form-control-sm" name="${name}" value="${value}" placeholder="${placeholder}" ${safe(attrs)}>
+  </div>`;
+
+/** The spec table, feature bullets, size/colour variants and the media gallery. */
+const detailRepeaters = (item, prefix, { mediaBound = false } = {}) => {
+  const specs = item.specs || [];
+  const features = item.features || [];
+  const sizes = item.sizes || [];
+  const colours = item.colours || [];
+  const media = item.media || [];
+  const isNew = prefix === 'new';
+
+  const specRow = (row = {}) =>
+    repeatRow(html`
+      ${smallInput({ name: 'spec_label[]', value: row.label || '', col: 'col-12 col-sm-4', placeholder: '尺寸' })}
+      ${smallInput({ name: 'spec_value[]', value: row.value || '', col: 'col-12 col-sm-7', placeholder: '长 62 × 宽 62 × 高 40 cm' })}
+    `);
+  const featureRow = (value = '') =>
+    repeatRow(smallInput({ name: 'feature[]', value, col: 'col-12 col-sm-11', placeholder: '头层牛皮，手感越用越润' }));
+  const sizeRow = (row = {}) =>
+    repeatRow(html`
+      ${smallInput({ name: 'size_name[]', value: row.name || '', col: 'col-12 col-sm-6', placeholder: '中号' })}
+      ${smallInput({ name: 'size_price[]', value: row.price === null || row.price === undefined ? '' : row.price, col: 'col-12 col-sm-5', placeholder: '留空则用商品价格', type: 'number', attrs: 'min="0" step="0.01"' })}
+    `);
+  const colourRow = (row = {}) =>
+    repeatRow(html`
+      ${smallInput({ name: 'colour_name[]', value: row.name || '', col: 'col-12 col-sm-6', placeholder: '焦糖棕' })}
+      ${smallInput({ name: 'colour_swatch[]', value: row.hex || '#8b5e3c', col: 'col-12 col-sm-5', placeholder: '#8b5e3c' })}
+    `);
+  const mediaRow = (row = {}) =>
+    repeatRow(html`
+      <div class="col-12 col-sm-3">
+        <select class="form-select form-select-sm" name="media_kind[]">
+          <option value="image" ${row.kind === 'video' ? '' : safe('selected')}>图片</option>
+          <option value="video" ${row.kind === 'video' ? safe('selected') : ''}>视频</option>
+        </select>
+      </div>
+      ${smallInput({ name: 'media_src[]', value: row.src || '', col: 'col-12 col-sm-8', placeholder: '/images/b-bag-grey-2.png' })}
+    `);
+
+  return html`
+    ${repeater({
+      title: '规格表',
+      hint: '前台商品页「规格参数」里逐行显示，例如 尺寸 / 材质 / 颜色。',
+      addLabel: '添加一行',
+      rows: specs.length ? specs.map(specRow) : specRow(),
+      template: specRow(),
+    })}
+    ${repeater({
+      title: '卖点',
+      hint: '一行一条，显示在商品页标题之后。',
+      addLabel: '添加一条',
+      rows: features.length ? features.map(featureRow) : featureRow(),
+      template: featureRow(),
+    })}
+    ${repeater({
+      title: '尺寸',
+      hint: isNew ? '新建商品默认给一条尺寸，不要留空；价格留空表示用商品价格。' : '每个尺寸可以有自己的价格；价格留空表示用商品价格。',
+      addLabel: '添加尺寸',
+      rows: sizes.length ? sizes.map(sizeRow) : sizeRow({ name: '默认', price: '' }),
+      template: sizeRow(),
+    })}
+    ${repeater({
+      title: '颜色',
+      hint: '前台商品页的颜色圆点，色值写 #RRGGBB。',
+      addLabel: '添加颜色',
+      rows: colours.length ? colours.map(colourRow) : colourRow(),
+      template: colourRow(),
+    })}
+    ${repeater({
+      title: '图片 / 视频图集',
+      hint: mediaBound
+        ? '按顺序显示在商品页左栏；可以填站内路径，也可以在下面选文件上传。上面的「图片」字段仍是列表页封面。'
+        : '当前没有绑定 R2，只能填站内路径或完整链接，不能上传。',
+      addLabel: '添加一项',
+      rows: media.length ? media.map(mediaRow) : mediaRow(),
+      template: mediaRow(),
+    })}
+    ${mediaBound
+      ? html`<div class="col-12">
+          <label class="form-label fs-8 text-uppercase mb-1" for="${prefix}-media-upload">上传图片或视频（可多选，追加到图集末尾）</label>
+          <input class="form-control form-control-sm" id="${prefix}-media-upload" type="file" name="media_upload[]" multiple accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm,video/quicktime">
+        </div>`
+      : ''}
+    <input type="hidden" name="has_details" value="1">
+  `;
+};
+
 /** The fields the create and the edit forms share; `prefix` keeps the ids unique. */
-const productFields = (item, prefix) => html`
+const productFields = (item, prefix, options = {}) => html`
   ${textField({ id: `${prefix}-title`, name: 'title', label: '标题', value: item.title, col: 'col-12 col-lg-4', attrs: 'maxlength="120" required' })}
   ${textField({ id: `${prefix}-slug`, name: 'handle', label: '别名', value: item.handle || '', attrs: 'maxlength="80" placeholder="自动，例如 b-bag-grey"' })}
   ${textField({ id: `${prefix}-price`, name: 'price', label: '价格', value: item.price === undefined ? '' : item.price, type: 'number', attrs: 'min="0" step="0.01" required' })}
@@ -304,10 +425,11 @@ const productFields = (item, prefix) => html`
   <div class="col-6 col-lg-3 d-flex align-items-end">${toggleField({ id: `${prefix}-grid`, name: 'show_in_home_grid', label: '首页推荐', checked: Boolean(item.show_in_home_grid) })}</div>
   ${textField({ id: `${prefix}-seo-title`, name: 'seo_title', label: 'SEO 标题', value: item.seo_title || '', col: 'col-12 col-lg-6', attrs: 'maxlength="120"' })}
   ${textField({ id: `${prefix}-seo-description`, name: 'seo_description', label: 'SEO 描述', value: item.seo_description || '', col: 'col-12 col-lg-6', attrs: 'maxlength="300"' })}
+  ${detailRepeaters(item, prefix, options)}
 `;
 
 /** One product in the list: a summary, the editor for its fields and its actions. */
-const productEditor = (item, { category, canLink, symbol, owners }) => {
+const productEditor = (item, { category, canLink, symbol, owners, mediaBound = false }) => {
   // A product lives in one category, so flag any it is listed in besides this one.
   const alsoIn = ((owners && owners.get(item.id)) || []).filter((owner) => owner.id !== category.id);
 
@@ -331,10 +453,10 @@ const productEditor = (item, { category, canLink, symbol, owners }) => {
         ${item.inGrid ? '' : html`<span class="badge text-bg-light text-secondary border">未在首页展示</span>`}
       </div>
     </div>
-    <form method="post" action="/admin/products/save">
+    <form method="post" action="/admin/products/save" enctype="multipart/form-data">
       <input type="hidden" name="id" value="${item.id}">
       <input type="hidden" name="category_slug" value="${category.slug}">
-      <div class="card-body row g-3">${productFields(item, `p-${item.id}`)}</div>
+      <div class="card-body row g-3">${productFields(item, `p-${item.id}`, { mediaBound })}</div>
       <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
         <span class="fs-8 text-secondary">商品 #${item.id}</span>
         <button class="btn btn-primary btn-sm rounded px-4" type="submit">保存商品</button>
@@ -373,8 +495,9 @@ export const categoryProductsView = ({
   picker = [],
   owners,
   collections,
-  symbol = '£',
+  symbol = '¥',
   limit = 200,
+  mediaBound = false,
 }) => {
   const listed = new Set(list.map((item) => item.id));
   const ownerOf = (item) => ((owners && owners.get(item.id)) || []).find((owner) => owner.id !== category.id) || null;
@@ -475,9 +598,9 @@ export const categoryProductsView = ({
           <div class="col-12 col-lg-6">
             <details class="border rounded-3 p-3">
               <summary class="fs-7 text-uppercase">创建全新商品</summary>
-              <form method="post" action="/admin/products/create" class="row g-3 mt-2">
+              <form method="post" action="/admin/products/create" class="row g-3 mt-2" enctype="multipart/form-data">
                 <input type="hidden" name="category_slug" value="${category.slug}">
-                ${productFields({ sold_out: 0, is_new: 0, price_from: 0, show_in_home_grid: 1, price: '' }, 'new')}
+                ${productFields({ sold_out: 0, is_new: 0, price_from: 0, show_in_home_grid: 1, price: '' }, 'new', { mediaBound })}
                 <div class="col-12 d-flex justify-content-end">
                   <button class="btn btn-primary btn-sm rounded px-4" type="submit">新建商品</button>
                 </div>
@@ -499,7 +622,7 @@ export const categoryProductsView = ({
     </div>
 
     ${visible.length
-      ? visible.map((item) => productEditor(item, { category, canLink, symbol, owners }))
+      ? visible.map((item) => productEditor(item, { category, canLink, symbol, owners, mediaBound }))
       : html`<div class="card border-0 shadow-sm rounded-3">
           <div class="card-body text-center py-5">
             <h2 class="h5 mb-2">暂无可编辑的商品</h2>

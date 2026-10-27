@@ -139,7 +139,7 @@ const accordion = (product, settings) => html`
       </h2>
       <div id="pdp-delivery" class="accordion-collapse collapse" aria-labelledby="pdp-delivery-heading" data-bs-parent="#pdpAccordion">
         <div class="accordion-body px-0 text-secondary fs-7">
-          ${settings.pdp_delivery_copy || 'Free UK delivery on orders over £75. Orders placed before 1pm are dispatched the same working day.'}
+          ${settings.pdp_delivery_copy || 'Free UK delivery on orders over ¥75. Orders placed before 1pm are dispatched the same working day.'}
         </div>
       </div>
     </div>
@@ -147,7 +147,7 @@ const accordion = (product, settings) => html`
 
 /* -------------------------------------------------------------- full page ---- */
 
-export const productView = ({ product, related = [], settings, symbol = '£', category = null }) => {
+export const productView = ({ product, related = [], settings, symbol = '¥', category = null }) => {
   // Home / the category this product was filed under in /admin / the product.
   // The crumb comes from `categoryOfProduct`, never from the product's own
   // collection: a product can sit in a curated list that is not its category.

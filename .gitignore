@@ -11,3 +11,6 @@ _scratch/
 scripts/*.log
 
 node_modules/
+
+# Screenshots rendered by scripts/shot-product-editor.mjs
+.shot/
