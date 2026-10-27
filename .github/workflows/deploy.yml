@@ -145,6 +145,17 @@ jobs:
         run: |
           echo "::warning title=D1 migrations were skipped::CLOUDFLARE_API_TOKEN cannot reach D1, so any new migrations/*.sql were not applied. Add 'Account - D1: Edit' to the token and re-run, or apply them from a machine where 'npx wrangler login' works: npm run db:remote"
 
+      - name: 列出 Worker 上的密钥名（不含值）
+        continue-on-error: true
+        run: |
+          echo "=== worker secrets ==="
+          npx wrangler secret list || echo "（列出失败，可能没有密钥或权限不足）"
+          echo "=== 当前 wrangler.jsonc vars ==="
+          node -e "const c=require('fs').readFileSync('wrangler.jsonc','utf8');const m=c.match(/\"vars\"[\s\S]*?\}/);console.log(m?m[0]:'（无 vars）')"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Deploy the Worker
         id: deploy
         run: |
