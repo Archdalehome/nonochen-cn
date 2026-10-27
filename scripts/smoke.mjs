@@ -46,7 +46,7 @@ console.log(`smoke testing ${base}\n`);
 await check('/', { contains: ['Chen Furniture', '/css/site.css', '/js/site.js', 'cart--offcanvas'] });
 await check('/products', { contains: ['/products/'] });
 await check('/collections', { contains: ['/collections/'] });
-await check('/cart', { contains: ['Your Cart'] });
+await check('/cart', { contains: ['订单摘要'] });
 await check('/checkout', {});
 await check('/checkout/thanks?name=Ada', { contains: ['Ada'] });
 await check('/search?q=bean', { contains: ['bean'] });
@@ -272,7 +272,7 @@ await check('/admin/products/create', {
   expect: 303,
   headers: { location: '/admin/login?next=%2Fadmin%2Fproducts%2Fcreate' },
 });
-await check('/admin/login', { contains: ['Sign in', 'name="username"', 'name="password"'], headers: { 'x-robots-tag': 'noindex' } });
+await check('/admin/login', { contains: ['登录后即可管理店铺', 'name="username"', 'name="password"'], headers: { 'x-robots-tag': 'noindex' } });
 await check('/admin/login', {
   init: {
     method: 'POST',
