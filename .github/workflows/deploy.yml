@@ -55,6 +55,38 @@ jobs:
       - name: Check the views render
         run: npm run check
 
+      # 中文站（内销）与英文站分库：库名写死为 el_store_cn，database_id 在
+      # wrangler.jsonc 里只是占位，每次部署前按库名解析真实 ID 再写回配置。
+      # 这样换账号、换库都不必手改仓库。找不到就创建一个。
+      - name: 解析或创建中文站独立的 D1 库
+        id: d1db
+        run: |
+          set -euo pipefail
+          DB_NAME=$(node -e "import('./scripts/wrangler-cli.mjs').then((m) => console.log(m.bindings().database))")
+          echo "目标库: $DB_NAME"
+          npx wrangler d1 list --json > /tmp/d1.json 2>/dev/null || echo '[]' > /tmp/d1.json
+          ID=$(node -e "
+            const fs = require('fs');
+            let list = [];
+            try { list = JSON.parse(fs.readFileSync('/tmp/d1.json', 'utf8')); } catch {}
+            if (!Array.isArray(list)) list = [];
+            const hit = list.find((d) => d && d.name === process.argv[1]);
+            console.log(hit ? (hit.uuid || hit.id) : '');
+          " "$DB_NAME")
+          if [ -z "$ID" ]; then
+            echo "库里没有 $DB_NAME，创建中…"
+            OUT=$(npx wrangler d1 create "$DB_NAME" 2>&1 | tee /tmp/create.log || true)
+            ID=$(grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' /tmp/create.log | head -n1 || true)
+          fi
+          if [ -z "$ID" ]; then
+            echo "::error title=D1 库不可用::无法创建或找到 $DB_NAME。请确认 CLOUDFLARE_API_TOKEN 具备 Account - D1: Edit。"
+            exit 1
+          fi
+          echo "D1 $DB_NAME -> $ID"
+          sed -i "s/\"database_id\": *\"[^\"]*\"/\"database_id\": \"$ID\"/" wrangler.jsonc
+          grep -n 'database_name\|database_id' wrangler.jsonc
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+
       - name: Mirror ./images into the assets directory
         run: node scripts/setup.mjs --skip-db
 

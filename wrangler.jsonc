@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "chen-furniture",
+  // 内销中文站：独立 Worker，不覆盖英文站 `chen-furniture`。
+  "name": "chdn-furniture-cn",
   "main": "src/index.js",
   "compatibility_date": "2025-06-01",
   "assets": {
@@ -11,9 +12,11 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "el_store",
-      // `wrangler d1 create el_store` on the chenfurnitureco@gmail.com account.
-      "database_id": "ddcc120e-87bc-408a-bbc4-9d2c7f36569a",
+      // 中文站独立库，与英文站的 el_store 完全分开。
+      "database_name": "el_store_cn",
+      // 占位符：CI 每次部署前按库名解析真实 ID 并写回本文件
+      // （见 .github/workflows/deploy.yml「解析或创建中文站独立的 D1 库」）。
+      "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
   ],
