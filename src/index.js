@@ -1541,7 +1541,9 @@ const robotsRoute = (request) => {
   const origin = new URL(request.url).origin;
   const body = [
     'User-agent: *',
-    'Allow: /',
+    // 站内商品与页面文案仍是模板演示数据（含「Made in UK」等不实表述），
+    // 换成真实商品与文案之前不对搜索引擎开放。内容到位后把这行改回 'Allow: /'。
+    'Disallow: /',
     'Disallow: /cart',
     'Disallow: /checkout',
     'Disallow: /admin',
