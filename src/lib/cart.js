@@ -72,7 +72,7 @@ export const addItem = async (db, id, { productId, variantId = 0, colour = '', q
     ? await db.prepare('SELECT id, price, available FROM product_variants WHERE id = ? AND product_id = ?').bind(variantId, productId).first()
     : null;
   const product = await db.prepare('SELECT price FROM products WHERE id = ?').bind(productId).first();
-  if (!product) throw new Error('Unknown product');
+  if (!product) throw new Error('找不到这个商品');
 
   const unitPrice = Number(variant && variant.price !== null && variant.price !== undefined ? variant.price : product.price);
   const quantity = Math.max(1, Math.min(99, Number(qty) || 1));

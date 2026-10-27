@@ -58,7 +58,7 @@ export const productCard = (product, { symbol = '£', columnClass = 'col-6 col-m
               : ''}
             ${product.soldOut
               ? html`<p class="product-badge position-absolute text-uppercase shadow py-2 px-2 fs-8 heading-font text-center lh-1 rounded fw-bold mb-0"
-                       style="top: 12px; left: 12px; background: #18181B; color: #fff;">Sold out</p>`
+                       style="top: 12px; left: 12px; background: #18181B; color: #fff;">已售罄</p>`
               : ''}
             <img
               src="${product.image}"

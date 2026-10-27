@@ -14,7 +14,7 @@ export const contentPage = ({ handle, list }) => {
 
   return html`
     <div class="container pt-3">
-      ${breadcrumbs([{ label: 'Home', url: '/' }, { label: title }])}
+      ${breadcrumbs([{ label: '首页', url: '/' }, { label: title }])}
     </div>
     <section class="content-page py-4">
       <div class="container">
@@ -42,31 +42,31 @@ export const contentPage = ({ handle, list }) => {
 
 export const searchPage = ({ term, products, symbol = '£' }) => html`
   <div class="container pt-3">
-    ${breadcrumbs([{ label: 'Home', url: '/' }, { label: 'Search' }])}
+    ${breadcrumbs([{ label: '首页', url: '/' }, { label: '搜索' }])}
   </div>
   <section class="search-page py-4">
     <div class="container">
       <form method="get" action="/search" class="mb-4" role="search">
-        <label class="visually-hidden" for="search-input">Search products</label>
+        <label class="visually-hidden" for="search-input">搜索商品</label>
         <div class="d-flex gap-2" style="max-width: 32rem;">
-          <input class="form-control" type="search" id="search-input" name="q" value="${term}" placeholder="Search for bean bags, cushions, lighting...">
-          <button class="btn btn-primary rounded px-4" type="submit">Search</button>
+          <input class="form-control" type="search" id="search-input" name="q" value="${term}" placeholder="搜索商品名称或品类…">
+          <button class="btn btn-primary rounded px-4" type="submit">搜索</button>
         </div>
       </form>
 
       ${term
         ? html`<p class="text-secondary fs-7 mb-4">
-            ${products.length} result${products.length === 1 ? '' : 's'} for &ldquo;${term}&rdquo;
+            与 &ldquo;${term}&rdquo; 相关的商品：${products.length} 件
           </p>`
-        : sectionHeading({ heading: 'Search the range', intro: 'Looking for something in particular?', align: 'start' })}
+        : sectionHeading({ heading: '搜索全站', intro: '想找点什么？', align: 'start' })}
 
       ${products.length
         ? html`<div class="row g-3 g-md-4">${products.map((product) => productCard(product, { symbol }))}</div>`
         : term
           ? html`<div class="text-center py-5">
-              <h2 class="h4 fw-light mb-3">No products found</h2>
-              <p class="text-secondary mb-4">Try a shorter search term, or browse the collections.</p>
-              <a href="/collections" class="btn btn-primary rounded px-4">Browse collections</a>
+              <h2 class="h4 fw-light mb-3">没有找到商品</h2>
+              <p class="text-secondary mb-4">换个短一点的关键词试试，或者直接逛逛系列。</p>
+              <a href="/collections" class="btn btn-primary rounded px-4">浏览系列</a>
             </div>`
           : ''}
     </div>

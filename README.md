@@ -9,6 +9,29 @@ migrations and tagged-template views.
 > and stay the property of their original owner. Treat this as a technical
 > exercise rather than a production shop to point customers at.
 
+## 内销中文站：本地化范围与未完成项
+
+这一支是 `nonochen` 的中文版（内销站），只做了界面中文化，**没有动价格与承诺**。
+
+已完成：
+
+- `src/views/*.js`（店面全部视图 + `/admin` 后台界面）、`src/lib/admin.js`（后台校验提示）、
+  `src/index.js`（路由层 404 / 提示表 / SEO 文案 / JSON 接口错误信息）、`public/js/site.js`（前端提示）
+  的**用户可见文案**全部改为中文；`<html lang>` 改为 `zh-CN`。
+- `migrations/0013_zh_copy.sql`：D1 里 `settings`（购物车、搜索、商品页表单标题、订阅区、版权行）
+  与 `menu_items`（页脚栏目名与链接名）的中文改写，幂等，可重复执行。
+
+仍未中文化 / 需业主定稿后才能动：
+
+- **价格与货币**：`CURRENCY: "GBP"`、`£`、`src/views/*.js` 里的默认 `symbol`、`public/js/site.js`
+  的 `£` 全部原样保留。改人民币涉及定价，需要业主给价目表或汇率与取整规则。
+- **承诺类文案**：`settings` 里的 `announcement_text`（免邮公告）、`brand_line`（品牌话术）、
+  `cart_footer_note`、`pdp_trust_1/2`、`pdp_geo_note`、`ship_accordion_body`、`returns_note`
+  保持英文原样；`src/views/product.js` 的 `Free UK delivery on orders over £75…` 也没有翻——
+  这些是免邮、交期、质保类承诺，改写成中文等于对外承诺，需要业主终审。
+- **商品与内容数据**：`migrations/0002_seed.sql` 的 120KB 演示商品与页面正文仍是英文；如果这些不是
+  真实商品，需要业主给真实品名、规格、价格、图片对应关系后整套替换，再补中文化。
+
 ## Stack
 
 | piece | detail |

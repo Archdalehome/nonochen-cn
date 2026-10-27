@@ -33,7 +33,7 @@ const buyBox = (product, settings, symbol) => {
 
         ${product.colours.length
           ? html`<fieldset class="mb-4">
-              <legend class="fs-8 text-uppercase text-secondary mb-2">Colour</legend>
+              <legend class="fs-8 text-uppercase text-secondary mb-2">颜色</legend>
               <div class="d-flex flex-wrap gap-2">
                 ${product.colours.map(
                   (colour, index) => html`<button
@@ -51,7 +51,7 @@ const buyBox = (product, settings, symbol) => {
 
         ${sizes.length > 1
           ? html`<fieldset class="mb-4">
-              <legend class="fs-8 text-uppercase text-secondary mb-2">Size</legend>
+              <legend class="fs-8 text-uppercase text-secondary mb-2">尺寸</legend>
               <div class="d-flex flex-column gap-2">
                 ${sizes.map(
                   (size, index) => html`<label class="variant-option d-flex justify-content-between align-items-center border rounded px-3 py-2 ${index === 0 ? 'is-active' : ''} ${size.available ? '' : 'is-disabled'}">
@@ -67,7 +67,7 @@ const buyBox = (product, settings, symbol) => {
                       >
                       <span>${size.name}</span>
                     </span>
-                    <span class="fs-7 text-secondary">${money(size.price, symbol)}${size.available ? '' : ' - sold out'}</span>
+                    <span class="fs-7 text-secondary">${money(size.price, symbol)}${size.available ? '' : ' - 已售罄'}</span>
                   </label>`
                 )}
               </div>
@@ -78,16 +78,16 @@ const buyBox = (product, settings, symbol) => {
 
         <div class="d-flex gap-2 align-items-stretch mb-3">
           <div class="qty-stepper d-inline-flex align-items-center border rounded">
-            <button type="button" class="btn btn-sm px-3 py-2 border-0" data-qty-step="-1" aria-label="Decrease quantity">${icons.minus}</button>
-            <input type="number" name="qty" value="1" min="1" max="99" class="form-control border-0 text-center p-0" style="width: 3.5rem" aria-label="Quantity">
-            <button type="button" class="btn btn-sm px-3 py-2 border-0" data-qty-step="1" aria-label="Increase quantity">${icons.plus}</button>
+            <button type="button" class="btn btn-sm px-3 py-2 border-0" data-qty-step="-1" aria-label="减少数量">${icons.minus}</button>
+            <input type="number" name="qty" value="1" min="1" max="99" class="form-control border-0 text-center p-0" style="width: 3.5rem" aria-label="数量">
+            <button type="button" class="btn btn-sm px-3 py-2 border-0" data-qty-step="1" aria-label="增加数量">${icons.plus}</button>
           </div>
           <button
             type="submit"
             class="btn btn-primary rounded flex-grow-1 d-flex align-items-center justify-content-center gap-2 fw-bold text-uppercase"
             data-add-to-cart
             ${product.soldOut ? safe('disabled') : ''}
-          >${product.soldOut ? 'Sold out' : settings.pdp_add_to_cart || 'Add to basket'}</button>
+          >${product.soldOut ? '已售罄' : settings.pdp_add_to_cart || '加入购物车'}</button>
         </div>
         <p class="fs-8 text-center text-secondary mb-0" data-form-message role="status"></p>
       </form>
@@ -105,7 +105,7 @@ const accordion = (product, settings) => html`
     <div class="accordion-item">
       <h2 class="accordion-header" id="pdp-description-heading">
         <button class="accordion-button collapsed px-0 fs-6 fw-normal text-uppercase" type="button" data-bs-toggle="collapse" data-bs-target="#pdp-description" aria-expanded="false" aria-controls="pdp-description">
-          Description
+          商品描述
         </button>
       </h2>
       <div id="pdp-description" class="accordion-collapse collapse" aria-labelledby="pdp-description-heading" data-bs-parent="#pdpAccordion">
@@ -116,7 +116,7 @@ const accordion = (product, settings) => html`
       ? html`<div class="accordion-item">
           <h2 class="accordion-header" id="pdp-specs-heading">
             <button class="accordion-button collapsed px-0 fs-6 fw-normal text-uppercase" type="button" data-bs-toggle="collapse" data-bs-target="#pdp-specs" aria-expanded="false" aria-controls="pdp-specs">
-              Specification
+              规格参数
             </button>
           </h2>
           <div id="pdp-specs" class="accordion-collapse collapse" aria-labelledby="pdp-specs-heading" data-bs-parent="#pdpAccordion">
@@ -134,7 +134,7 @@ const accordion = (product, settings) => html`
     <div class="accordion-item">
       <h2 class="accordion-header" id="pdp-delivery-heading">
         <button class="accordion-button collapsed px-0 fs-6 fw-normal text-uppercase" type="button" data-bs-toggle="collapse" data-bs-target="#pdp-delivery" aria-expanded="false" aria-controls="pdp-delivery">
-          Delivery &amp; returns
+          配送与退换
         </button>
       </h2>
       <div id="pdp-delivery" class="accordion-collapse collapse" aria-labelledby="pdp-delivery-heading" data-bs-parent="#pdpAccordion">
@@ -152,8 +152,8 @@ export const productView = ({ product, related = [], settings, symbol = '£', ca
   // The crumb comes from `categoryOfProduct`, never from the product's own
   // collection: a product can sit in a curated list that is not its category.
   const trail = [
-    { label: 'Home', url: '/' },
-    category ? { label: category.name, url: category.href } : { label: 'Shop', url: '/products' },
+    { label: '首页', url: '/' },
+    category ? { label: category.name, url: category.href } : { label: '全部商品', url: '/products' },
     { label: product.short_title || product.title },
   ];
 
@@ -201,7 +201,7 @@ export const productView = ({ product, related = [], settings, symbol = '£', ca
   ${related.length
     ? html`<section class="product-related py-4 py-md-5 bg-secondary-subtle">
         <div class="container">
-          ${sectionHeading({ heading: 'You may also like' })}
+          ${sectionHeading({ heading: '你可能也喜欢' })}
           <div class="row g-2 g-md-4">
             ${related.map((item) => productCard(item, { symbol }))}
           </div>

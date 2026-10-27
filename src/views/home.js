@@ -26,7 +26,7 @@ const heroSlide = (slide, index) => {
           ${slide.text ? html`<p class="text-white fs-5 mt-2 mb-0">${slide.text}</p>` : ''}
           ${button}
         </div>
-        ${slide.url && !slide.button ? html`<a href="${slide.url}" class="hero-slide__link stretched-link" aria-label="${slide.title || 'Shop now'}"></a>` : ''}
+        ${slide.url && !slide.button ? html`<a href="${slide.url}" class="hero-slide__link stretched-link" aria-label="${slide.title || '立即选购'}"></a>` : ''}
       </div>
     </div>`;
 };
@@ -46,7 +46,7 @@ export const hero = (section) => {
         ${slides.length > 1
           ? html`<div class="carousel-indicators">
               ${slides.map(
-                (_, index) => html`<button type="button" data-bs-target="#hero-carousel-${section.id}" data-bs-slide-to="${index}" class="${index === 0 ? 'active' : ''}" aria-label="Slide ${index + 1}"></button>`
+                (_, index) => html`<button type="button" data-bs-target="#hero-carousel-${section.id}" data-bs-slide-to="${index}" class="${index === 0 ? 'active' : ''}" aria-label="第 ${index + 1} 张"></button>`
               )}
             </div>`
           : ''}

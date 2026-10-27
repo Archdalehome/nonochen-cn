@@ -23,7 +23,7 @@ const categoryLink = (item, path, className) => {
 export const categoryNav = (list = [], path = '') => {
   if (!list.length) return '';
   return html`
-    <ul class="navbar-nav d-none d-md-flex flex-row justify-content-center flex-fill py-1 mb-0 header-categories" aria-label="Product categories">
+    <ul class="navbar-nav d-none d-md-flex flex-row justify-content-center flex-fill py-1 mb-0 header-categories" aria-label="商品分类">
       ${list.map(
         (item) => html`<li class="navbar-item">
           ${categoryLink(item, path, 'nav-link fs-6 text-capitalize nav--top-level header-categories__link')}
@@ -43,22 +43,22 @@ export const categoryNav = (list = [], path = '') => {
 export const mobileNav = (categories = [], path = '') => html`
   <div class="offcanvas offcanvas-start mobile-nav" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
     <div class="offcanvas-header border-bottom">
-      <span class="heading-font text-uppercase h5 mb-0" id="offcanvasNavbarLabel">Menu</span>
-      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      <span class="heading-font text-uppercase h5 mb-0" id="offcanvasNavbarLabel">菜单</span>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="关闭"></button>
     </div>
     <div class="offcanvas-body flex-column">
       ${categories.length
-        ? html`<nav class="w-100" aria-label="Product categories">
-            <p class="fs-8 text-uppercase text-secondary mb-2">Shop by category</p>
+        ? html`<nav class="w-100" aria-label="商品分类">
+            <p class="fs-8 text-uppercase text-secondary mb-2">按分类选购</p>
             <ul class="mobile-nav__categories mb-4">
               ${categories.map((item) => html`<li>${categoryLink(item, path, 'mobile-nav__category-link')}</li>`)}
             </ul>
           </nav>`
         : ''}
       <div class="mt-auto pt-4 d-flex flex-column gap-3 fs-7">
-        <a class="text-reset" href="/search">Search</a>
-        <a class="text-reset" href="/pages/contact-details">Contact Details</a>
-        <a class="text-reset" href="/pages/store-locator">Store Locator</a>
+        <a class="text-reset" href="/search">搜索</a>
+        <a class="text-reset" href="/pages/contact-details">联系方式</a>
+        <a class="text-reset" href="/pages/store-locator">门店位置</a>
       </div>
     </div>
   </div>`;
@@ -85,13 +85,13 @@ export const header = (settings, cart, categories = [], path = '') => html`
         <div class="container-fluid container-xl px-2">
           <div class="d-flex justify-content-center w-100 top-navbar align-items-center py-2 py-md-0">
             <div class="d-flex d-md-none me-auto flex-fill">
-              <button class="nav-link border-0 bg-transparent p-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Toggle navigation">
+              <button class="nav-link border-0 bg-transparent p-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="展开菜单">
                 ${icons.menu}
               </button>
             </div>
             <div class="d-flex">
               <div class="navbar-item">
-                <a href="/" class="navbar-brand nav-link p-0 d-flex align-items-center h-100 me-2 me-lg-4" aria-label="Chen Furniture home">
+                <a href="/" class="navbar-brand nav-link p-0 d-flex align-items-center h-100 me-2 me-lg-4" aria-label="Chen Furniture 首页">
                   ${svgLogo('header__heading-logo', 48)}
                 </a>
               </div>
@@ -99,8 +99,8 @@ export const header = (settings, cart, categories = [], path = '') => html`
             <div class="d-flex ms-auto flex-fill justify-content-end">
               ${categoryNav(categories, path)}
               <div class="d-flex align-items-center">
-                <a href="/search" class="nav-link p-2" aria-label="Search">${icons.search}</a>
-                <button class="nav-link border-0 bg-transparent p-2 position-relative" type="button" data-bs-toggle="offcanvas" data-bs-target="#cart" aria-controls="cart" aria-label="Open cart">
+                <a href="/search" class="nav-link p-2" aria-label="搜索">${icons.search}</a>
+                <button class="nav-link border-0 bg-transparent p-2 position-relative" type="button" data-bs-toggle="offcanvas" data-bs-target="#cart" aria-controls="cart" aria-label="打开购物车">
                   ${icons.cart}
                   <span class="cart-count badge rounded-pill bg-primary ${cart.count ? '' : 'd-none'}" data-cart-count>${cart.count}</span>
                 </button>

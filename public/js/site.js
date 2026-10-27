@@ -61,7 +61,7 @@
       openDrawer();
       if (message) message.textContent = '';
     } catch (error) {
-      if (message) message.textContent = 'Sorry, we could not add that to your basket.';
+      if (message) message.textContent = '抱歉，暂时无法加入购物车。';
     } finally {
       if (button) button.removeAttribute('disabled');
     }
@@ -180,10 +180,10 @@
           body: new FormData(form),
         });
         const data = await response.json();
-        if (note) note.textContent = data.message || 'Thanks - you are on the list.';
+        if (note) note.textContent = data.message || '谢谢，您已成功订阅。';
         if (data.ok) form.reset();
       } catch (error) {
-        if (note) note.textContent = 'Please check your email address and try again.';
+        if (note) note.textContent = '请检查您的邮箱地址，然后重试。';
       }
     });
   });

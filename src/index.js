@@ -113,17 +113,17 @@ const redirect = (location, extra = {}) => {
 };
 
 const methodNotAllowed = () =>
-  new Response('Method not allowed', { status: 405, headers: { allow: 'GET, POST, HEAD' } });
+  new Response('不支持的请求方法', { status: 405, headers: { allow: 'GET, POST, HEAD' } });
 
-const notFound = (ctx, message = 'We could not find that page.') =>
+const notFound = (ctx, message = '没有找到这个页面。') =>
   page(
     layout({
       ...ctx,
-      title: 'Page not found',
+      title: '页面不存在',
       body: plainPage({
-        title: 'Page not found',
+        title: '页面不存在',
         message,
-        action: { label: 'Back to the homepage', url: '/' },
+        action: { label: '返回首页', url: '/' },
       }),
     }),
     404
@@ -178,7 +178,7 @@ const productsForSections = async (db, list) => {
         }
         const tabs = pickers.length
           ? pickers
-          : [{ label: section.data.heading || 'Featured', collection: section.data.collection || '' }];
+          : [{ label: section.data.heading || '精选', collection: section.data.collection || '' }];
         map[section.id] = await Promise.all(
           tabs.map(async (tab) => ({
             label: tab.label,
@@ -228,7 +228,7 @@ const allProductsRoute = async (request, env, ctx) => {
     ? url.searchParams.get('sort')
     : 'featured';
   const list = await productList(env.DB, { limit: 120 });
-  const heading = ctx.settings.products_heading || 'All products';
+  const heading = ctx.settings.products_heading || '全部商品';
 
   return view(ctx, {
     title: heading,
@@ -250,7 +250,7 @@ const allProductsRoute = async (request, env, ctx) => {
 
 const productRoute = async (request, env, ctx, handle) => {
   const product = await productByHandle(env.DB, handle);
-  if (!product) return notFound(ctx, 'That product is no longer available.');
+  if (!product) return notFound(ctx, '这个商品已经下架了。');
 
   const [related, category] = await Promise.all([
     relatedProducts(env.DB, product, 4),
@@ -288,8 +288,8 @@ const productRoute = async (request, env, ctx, handle) => {
 const collectionsRoute = async (request, env, ctx) => {
   const list = await collections(env.DB);
   return view(ctx, {
-    title: 'Collections',
-    description: 'Every Chen Furniture collection, from outdoor bean bags to indoor lighting.',
+    title: '系列',
+    description: 'Chen Furniture 的全部系列，从户外懒人沙发到室内灯具。',
     canonical: new URL('/collections', request.url).toString(),
     body: collectionIndex({ list, symbol: ctx.symbol }),
   });
@@ -298,7 +298,7 @@ const collectionsRoute = async (request, env, ctx) => {
 const collectionRoute = async (request, env, ctx, handle) => {
   const url = new URL(request.url);
   const current = await collection(env.DB, handle);
-  if (!current) return notFound(ctx, 'That collection has moved or sold out.');
+  if (!current) return notFound(ctx, '这个系列已迁移或已售罄。');
 
   const sort = SORTS.some((option) => option.value === url.searchParams.get('sort'))
     ? url.searchParams.get('sort')
@@ -330,7 +330,7 @@ const categoryRoute = async (request, env, ctx, slug) => {
   const current = await categoryBySlug(env.DB, slug);
   // Hidden categories stay reachable for signed in admins so Preview works.
   if (!current || (!current.enabled && !(await sessionUser(request, env)))) {
-    return notFound(ctx, 'That category is not available.');
+    return notFound(ctx, '这个分类暂时不可用。');
   }
 
   const sort = SORTS.some((option) => option.value === url.searchParams.get('sort'))
@@ -340,7 +340,7 @@ const categoryRoute = async (request, env, ctx, slug) => {
 
   return view(ctx, {
     title: current.name,
-    description: `Shop ${current.name} at ${ctx.settings.site_name || 'Chen Furniture'}.`,
+    description: `在 ${ctx.settings.site_name || 'Chen Furniture'} 选购 ${current.name}。`,
     canonical: new URL(`/category/${current.slug}`, request.url).toString(),
     body: collectionView({
       collection: { handle: current.slug, title: current.name, subtitle: '', description: '' },
@@ -359,15 +359,15 @@ const adminSiteName = (env) => env.SITE_NAME || 'Chen Furniture';
 
 /** `?flash=` / `?error=` values the admin screens can show. */
 const ADMIN_NOTICES = {
-  created: { kind: 'success', message: 'Category added - it is already live in the header.' },
-  saved: { kind: 'success', message: 'Category saved.' },
-  moved: { kind: 'success', message: 'Order updated.' },
-  deleted: { kind: 'success', message: 'Category deleted.' },
-  name: { kind: 'danger', message: 'A category needs a name.' },
-  slug: { kind: 'danger', message: 'That slug is not valid - use a-z, 0-9 and dashes (up to 60 characters).' },
-  url: { kind: 'danger', message: 'The link override has to start with "/" (for example /collections/outdoor-range).' },
-  duplicate: { kind: 'danger', message: 'Another category already uses that slug.' },
-  missing: { kind: 'danger', message: 'That category could not be found.' },
+  created: { kind: 'success', message: '分类已添加，页头已经显示。' },
+  saved: { kind: 'success', message: '分类已保存。' },
+  moved: { kind: 'success', message: '排序已更新。' },
+  deleted: { kind: 'success', message: '分类已删除。' },
+  name: { kind: 'danger', message: '分类需要填写名称。' },
+  slug: { kind: 'danger', message: '这个 slug 不合法：只能使用 a-z、0-9 和短横线（最多 60 个字符）。' },
+  url: { kind: 'danger', message: '自定义链接必须以 “/” 开头（例如 /collections/outdoor-range）。' },
+  duplicate: { kind: 'danger', message: '已有其他分类在使用这个 slug。' },
+  missing: { kind: 'danger', message: '没有找到这个分类。' },
 };
 
 /**
@@ -375,36 +375,36 @@ const ADMIN_NOTICES = {
  * are prefixed so a `?flash=` from one screen can never read oddly on the other.
  */
 const PRODUCT_NOTICES = {
-  'product-created': { kind: 'success', message: 'Product created - it is listed in this category already.' },
-  'product-saved': { kind: 'success', message: 'Product saved.' },
-  'product-added': { kind: 'success', message: 'Product added to this category.' },
-  'product-removed': { kind: 'success', message: 'Product removed from this category. The product itself is untouched.' },
-  'product-deleted': { kind: 'success', message: 'Product deleted, along with its variants, media and cart lines.' },
-  'product-title': { kind: 'danger', message: 'A product needs a title.' },
+  'product-created': { kind: 'success', message: '商品已创建，并且已加入当前分类。' },
+  'product-saved': { kind: 'success', message: '商品已保存。' },
+  'product-added': { kind: 'success', message: '商品已加入这个分类。' },
+  'product-removed': { kind: 'success', message: '商品已从这个分类移除，商品本身不受影响。' },
+  'product-deleted': { kind: 'success', message: '商品已删除，它的规格、图片和购物车记录也一并删除。' },
+  'product-title': { kind: 'danger', message: '商品需要填写标题。' },
   'product-handle': {
     kind: 'danger',
-    message: 'That product slug is not valid - use a-z, 0-9 and dashes (up to 80 characters).',
+    message: '这个商品 slug 不合法：只能使用 a-z、0-9 和短横线（最多 80 个字符）。',
   },
-  'product-duplicate': { kind: 'danger', message: 'Another product already uses that slug.' },
-  'product-price': { kind: 'danger', message: 'The price has to be a number, for example 249 or 249.99.' },
-  'product-compare': { kind: 'danger', message: 'The "was" price has to be a number, or left empty.' },
+  'product-duplicate': { kind: 'danger', message: '已有其他商品在使用这个 slug。' },
+  'product-price': { kind: 'danger', message: '价格必须是数字，例如 249 或 249.99。' },
+  'product-compare': { kind: 'danger', message: '“原价” 必须是数字，或者留空。' },
   'product-image': {
     kind: 'danger',
-    message: 'A product needs an image: a path such as /images/b-bag-grey.png or a full https:// URL.',
+    message: '商品需要图片：可以是 /images/b-bag-grey.png 这样的路径，也可以是完整的 https:// 链接。',
   },
-  'product-missing': { kind: 'danger', message: 'That product is no longer in the catalogue.' },
-  'product-pick': { kind: 'danger', message: 'Pick a product from the list first.' },
+  'product-missing': { kind: 'danger', message: '这个商品已经不在商品库里了。' },
+  'product-pick': { kind: 'danger', message: '请先从列表中选择一个商品。' },
   'product-filter': {
     kind: 'danger',
-    message: 'This category lists every product, so there is nothing to add or remove.',
+    message: '这个分类会列出全部商品，因此没有需要添加或移除的内容。',
   },
   'product-not-held': {
     kind: 'danger',
-    message: 'That product is not in this category - reload the screen, the list may have moved on.',
+    message: '这个商品不在当前分类里：请刷新页面，列表可能已经变化。',
   },
   'product-taken': {
     kind: 'danger',
-    message: 'That product already sits in another category. A product lives in one category at a time - take it out of the other one first.',
+    message: '这个商品已经在另一个分类里。一个商品同时只能属于一个分类：请先从另一个分类中移除。',
   },
 };
 
@@ -415,54 +415,54 @@ const PRODUCT_NOTICES = {
  * from.
  */
 const HOME_NOTICES = {
-  'bar-saved': { kind: 'success', message: 'Announcement bar saved - every page shows it from its next request on.' },
-  'hero-saved': { kind: 'success', message: 'Hero saved - reload the homepage to see it.' },
-  'bar-text': { kind: 'danger', message: 'The announcement bar needs some text.' },
+  'bar-saved': { kind: 'success', message: '公告栏已保存，下一个请求起每个页面都会显示。' },
+  'hero-saved': { kind: 'success', message: '主视觉已保存，刷新首页即可看到。' },
+  'bar-text': { kind: 'danger', message: '公告栏需要填写文字。' },
   'bar-icon': {
     kind: 'danger',
-    message: 'The bar icon has to be a path such as /images/icon-delivery.svg or a full https:// URL (or empty).',
+    message: '公告栏图标必须是以 /images/icon-delivery.svg 这样的路径，或完整的 https:// 链接（也可以留空）。',
   },
   'hero-video': {
     kind: 'danger',
-    message: 'The hero needs a video: a path such as /images/hero-outdoor-desktop.mp4, a full https:// URL, or a file to upload.',
+    message: '主视觉需要视频：可以是 /images/hero-outdoor-desktop.mp4 这样的路径、完整的 https:// 链接，或者上传一个文件。',
   },
   'hero-media': {
     kind: 'danger',
-    message: 'The still images have to be paths such as /images/hero-outdoor-poster-desktop.jpg or full https:// URLs.',
+    message: '静态图必须是以 /images/hero-outdoor-poster-desktop.jpg 这样的路径，或完整的 https:// 链接。',
   },
   'hero-link': {
     kind: 'danger',
-    message: 'Links have to start with "/" (for example /collections/outdoor-range) or be a full https:// URL.',
+    message: '链接必须以 “/” 开头（例如 /collections/outdoor-range），或者是完整的 https:// 链接。',
   },
-  'hero-button': { kind: 'danger', message: 'A button needs a label and a link - clear the label to link the whole slide instead.' },
-  'hero-slide': { kind: 'danger', message: 'That slide is not part of the hero (any more) - reload the screen and try again.' },
-  'hero-missing': { kind: 'danger', message: 'The homepage has no hero block (any more), so there is nothing to save.' },
+  'hero-button': { kind: 'danger', message: '按钮需要同时填写文字和链接；如果想让整张幻灯片可点，请清空按钮文字。' },
+  'hero-slide': { kind: 'danger', message: '这张幻灯片已经不属于主视觉了，请刷新页面后重试。' },
+  'hero-missing': { kind: 'danger', message: '首页已经没有主视觉区块了，因此没有可保存的内容。' },
   'hero-type': {
     kind: 'danger',
-    message: 'That file type is not supported: videos have to be MP4, WebM or MOV, stills JPEG, PNG, WebP or AVIF.',
+    message: '不支持这种文件类型：视频只能是 MP4、WebM 或 MOV，图片只能是 JPEG、PNG、WebP 或 AVIF。',
   },
-  'hero-size': { kind: 'danger', message: 'That file is too big - the upload limit is 25 MB.' },
+  'hero-size': { kind: 'danger', message: '文件太大了，上传上限是 25 MB。' },
   'hero-storage': {
     kind: 'danger',
-    message: 'No MEDIA bucket is bound to this Worker, so the file could not be stored - type a path such as /images/hero-outdoor-desktop.mp4 instead.',
+    message: '这个 Worker 没有绑定 MEDIA 存储桶，文件无法保存：请改为填写 /images/hero-outdoor-desktop.mp4 这样的路径。',
   },
-  'row-saved': { kind: 'success', message: 'Product row saved - reload the homepage to see it.' },
-  'grid-saved': { kind: 'success', message: 'Tile saved - reload the homepage to see it.' },
-  'banner-saved': { kind: 'success', message: 'Banner saved - reload the homepage to see it.' },
-  'section-shown': { kind: 'success', message: 'That block is back on the homepage.' },
+  'row-saved': { kind: 'success', message: '商品行已保存，刷新首页即可看到。' },
+  'grid-saved': { kind: 'success', message: '图文块已保存，刷新首页即可看到。' },
+  'banner-saved': { kind: 'success', message: '横幅已保存，刷新首页即可看到。' },
+  'section-shown': { kind: 'success', message: '这个区块已经重新显示在首页。' },
   'section-hidden': {
     kind: 'success',
-    message: 'That block is off the homepage. Nothing was deleted, so switching it on again brings it back exactly as it was.',
+    message: '这个区块已从首页隐藏。内容没有被删除，重新打开就会完全恢复原样。',
   },
   'section-missing': {
     kind: 'danger',
-    message: 'That homepage block is not there (any more) - reload the screen and try again.',
+    message: '首页已经没有这个区块了，请刷新页面后重试。',
   },
-  'media-type': { kind: 'danger', message: 'That file type is not supported: images have to be JPEG, PNG, WebP or AVIF.' },
-  'media-size': { kind: 'danger', message: 'That file is too big - the upload limit is 25 MB.' },
+  'media-type': { kind: 'danger', message: '不支持这种文件类型：图片只能是 JPEG、PNG、WebP 或 AVIF。' },
+  'media-size': { kind: 'danger', message: '文件太大了，上传上限是 25 MB。' },
   'media-storage': {
     kind: 'danger',
-    message: 'No MEDIA bucket is bound to this Worker, so the file could not be stored - type the path of an image that is already on the site instead.',
+    message: '这个 Worker 没有绑定 MEDIA 存储桶，文件无法保存：请改为填写站点上已有图片的路径。',
   },
   // The product rows and the bottom blocks have one error each per rule; the
   // wording lives in `lib/admin.js`, next to the rule that decides it, and is
@@ -478,32 +478,32 @@ const HOME_NOTICES = {
  * one screen can never read oddly on another.
  */
 const FOOTER_NOTICES = {
-  'group-created': { kind: 'success', message: 'Column added - the footer shows it from its next request on.' },
-  'group-saved': { kind: 'success', message: 'Column saved.' },
-  'group-moved': { kind: 'success', message: 'Column order updated.' },
-  'group-deleted': { kind: 'success', message: 'Column deleted, along with the links in it.' },
-  'group-heading': { kind: 'danger', message: 'A footer column needs a heading, for example Company.' },
-  'group-missing': { kind: 'danger', message: 'That footer column could not be found.' },
-  'link-created': { kind: 'success', message: 'Link added - the footer shows it from its next request on.' },
-  'link-saved': { kind: 'success', message: 'Link saved.' },
-  'link-moved': { kind: 'success', message: 'Link order updated.' },
-  'link-deleted': { kind: 'success', message: 'Link deleted.' },
-  'link-label': { kind: 'danger', message: 'A footer link needs the text that is shown on the site.' },
+  'group-created': { kind: 'success', message: '栏已添加，下一个请求起页脚就会显示。' },
+  'group-saved': { kind: 'success', message: '栏已保存。' },
+  'group-moved': { kind: 'success', message: '栏的排序已更新。' },
+  'group-deleted': { kind: 'success', message: '栏已删除，其中的链接也一并删除。' },
+  'group-heading': { kind: 'danger', message: '页脚栏需要填写标题，例如“公司”。' },
+  'group-missing': { kind: 'danger', message: '没有找到这个页脚栏。' },
+  'link-created': { kind: 'success', message: '链接已添加，下一个请求起页脚就会显示。' },
+  'link-saved': { kind: 'success', message: '链接已保存。' },
+  'link-moved': { kind: 'success', message: '链接排序已更新。' },
+  'link-deleted': { kind: 'success', message: '链接已删除。' },
+  'link-label': { kind: 'danger', message: '页脚链接需要填写站点上显示的文字。' },
   'link-url': {
     kind: 'danger',
-    message: 'Footer links have to start with "/" (for example /pages/about), be a full https:// URL or a mailto: address.',
+    message: '页脚链接必须以 “/” 开头（例如 /pages/about），或者是完整的 https:// 链接或 mailto: 地址。',
   },
-  'link-missing': { kind: 'danger', message: 'That footer link could not be found.' },
-  'brand-saved': { kind: 'success', message: 'Company block saved - every page shows it from its next request on.' },
+  'link-missing': { kind: 'danger', message: '没有找到这个页脚链接。' },
+  'brand-saved': { kind: 'success', message: '公司信息区块已保存，下一个请求起每个页面都会显示。' },
   'brand-storage': {
     kind: 'danger',
-    message: 'No MEDIA bucket is bound to this Worker, so the logo could not be stored - type the path of an image that is already on the site instead.',
+    message: '这个 Worker 没有绑定 MEDIA 存储桶，Logo 无法保存：请改为填写站点上已有图片的路径。',
   },
   'brand-type': {
     kind: 'danger',
-    message: 'That file type is not supported: the logo has to be JPEG, PNG, WebP or AVIF.',
+    message: '不支持这种文件类型：Logo 只能是 JPEG、PNG、WebP 或 AVIF。',
   },
-  'brand-size': { kind: 'danger', message: 'That file is too big - the upload limit is 25 MB.' },
+  'brand-size': { kind: 'danger', message: '文件太大了，上传上限是 25 MB。' },
   // The company block has one error per rule; the wording lives in `lib/admin.js`
   // next to the rule that decides it and is folded in here, the way the homepage
   // folds in the section rules.
@@ -534,7 +534,7 @@ const adminResponse = ({ env, user = '', title, body, status = 200, flash = null
         body,
         flash,
         warning: defaultPasswordInUse(env)
-          ? html`The default <code>admin</code> / <code>admin</code> login is still active. To protect this area set your own password with <code>npx wrangler secret put ADMIN_PASSWORD</code>.`
+          ? html`默认的 <code>admin</code> / <code>admin</code> 登录仍然有效。为了保护后台，请用 <code>npx wrangler secret put ADMIN_PASSWORD</code> 设置自己的密码。`
           : '',
       })
     ),
@@ -544,7 +544,7 @@ const adminResponse = ({ env, user = '', title, body, status = 200, flash = null
 const adminLoginPage = async (request, env) => {
   const url = new URL(request.url);
   if (await sessionUser(request, env)) return redirect(safeNext(url.searchParams.get('next')));
-  const error = url.searchParams.get('error') === 'credentials' ? 'That username and password do not match.' : '';
+  const error = url.searchParams.get('error') === 'credentials' ? '用户名和密码不匹配。' : '';
   return new Response(
     render(
       loginView({
@@ -579,7 +579,7 @@ const adminCategoriesPage = async (request, env, user) => {
   return adminResponse({
     env,
     user,
-    title: 'Product categories',
+    title: '商品分类',
     body: categoriesView({ list, collections: handles }),
     flash: adminNotice(new URL(request.url)),
   });
@@ -629,7 +629,7 @@ const adminHomePage = async (request, env, user) => {
   return adminResponse({
     env,
     user,
-    title: 'Home page content',
+    title: '首页内容',
     body: homeView({
       settings: siteSettings,
       hero: list.find((section) => section.type === 'hero') || null,
@@ -826,7 +826,7 @@ const adminFooterPage = async (request, env, user) => {
   return adminResponse({
     env,
     user,
-    title: 'Footer',
+    title: '页脚',
     body: footerView({ groups, settings: siteSettings, media: Boolean(env.MEDIA) }),
     flash: adminNotice(new URL(request.url), FOOTER_NOTICES),
   });
@@ -905,8 +905,8 @@ const adminCategoryProductsPage = async (request, env, user) => {
     return adminResponse({
       env,
       user,
-      title: 'Not found',
-      body: adminNotFound({ message: 'That category does not exist (any more).' }),
+      title: '没有找到',
+      body: adminNotFound({ message: '这个分类已经不存在了。' }),
       status: 404,
     });
   }
@@ -920,7 +920,7 @@ const adminCategoryProductsPage = async (request, env, user) => {
   return adminResponse({
     env,
     user,
-    title: `Products in ${category.name}`,
+    title: `${category.name} 中的商品`,
     body: categoryProductsView({
       category,
       list,
@@ -1063,8 +1063,8 @@ const adminRoute = async (request, env, path, method) => {
   return adminResponse({
     env,
     user,
-    title: 'Not found',
-    body: adminNotFound({ message: `There is no admin screen at ${path}.` }),
+    title: '没有找到',
+    body: adminNotFound({ message: `${path} 没有对应的后台页面。` }),
     status: 404,
   });
 };
@@ -1118,7 +1118,7 @@ const cartResponse = (request, ctx, cart, headers, { fallback = '/cart' } = {}) 
 const cartAddRoute = async (request, env, ctx) => {
   const data = await readForm(request);
   const productId = Number(data.product_id);
-  if (!productId) return json({ ok: false, error: 'Missing product' }, 400);
+  if (!productId) return json({ ok: false, error: '缺少商品信息' }, 400);
 
   const { cart, headers } = await cartWithCookie(request, env, { create: true });
   const updated = await addItem(env.DB, cart.id, {
@@ -1157,8 +1157,8 @@ const searchRoute = async (request, env, ctx) => {
   const term = (new URL(request.url).searchParams.get('q') || '').trim();
   const products = await searchProducts(env.DB, term, 48);
   return view(ctx, {
-    title: term ? `Search: ${term}` : 'Search',
-    description: `Search results for ${term}`,
+    title: term ? `搜索：${term}` : '搜索',
+    description: `${term} 的搜索结果`,
     body: searchPage({ term, products, symbol: ctx.symbol }),
     bodyClass: 'search',
   });
@@ -1168,7 +1168,7 @@ const searchRoute = async (request, env, ctx) => {
 
 const pageRoute = async (request, env, ctx, handle) => {
   const list = await sections(env.DB, `page:${handle}`);
-  if (!list.length) return notFound(ctx, 'That page does not exist.');
+  if (!list.length) return notFound(ctx, '这个页面不存在。');
   const first = list.find((section) => section.type === 'page');
   return view(ctx, {
     title: (first && first.data.title) || handle,
@@ -1183,12 +1183,12 @@ const newsletterRoute = async (request, env, ctx) => {
   const valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
   if (!valid) {
     return wantsJson(request)
-      ? json({ ok: false, error: 'Please enter a valid email address.' }, 400)
+      ? json({ ok: false, error: '请输入有效的邮箱地址。' }, 400)
       : redirect('/?subscribed=0');
   }
   await addSubscriber(env.DB, email);
   return wantsJson(request)
-    ? json({ ok: true, message: env.NEWSLETTER_MESSAGE || 'Thanks - you are on the list.' })
+    ? json({ ok: true, message: env.NEWSLETTER_MESSAGE || '谢谢，您已成功订阅。' })
     : redirect(`${new URL(request.url).searchParams.get('return_to') || '/'}?subscribed=1`);
 };
 
@@ -1196,8 +1196,8 @@ const newsletterRoute = async (request, env, ctx) => {
 
 const checkoutRoute = (request, env, ctx) =>
   view(ctx, {
-    title: 'Checkout',
-    description: 'Secure checkout',
+    title: '结账',
+    description: '安全结账',
     body: checkoutPage({ cart: ctx.cart, symbol: ctx.symbol }),
   });
 
@@ -1213,10 +1213,10 @@ const checkoutSubmitRoute = async (request, env, ctx) => {
     name: String(data.name || ''),
     email: String(data.email || ''),
     message: [
-      `Subtotal: £${cart.subtotal.toFixed(2)}`,
-      `Address: ${data.address || ''}`,
+      `小计：£${cart.subtotal.toFixed(2)}`,
+      `地址：${data.address || ''}`,
       lines,
-      data.message ? `Notes: ${data.message}` : '',
+      data.message ? `备注：${data.message}` : '',
     ]
       .filter(Boolean)
       .join('\n'),
@@ -1228,7 +1228,7 @@ const checkoutSubmitRoute = async (request, env, ctx) => {
 
 const thanksRoute = (request, env, ctx) =>
   view(ctx, {
-    title: 'Thank you',
+    title: '谢谢',
     body: thankYouPage({ name: new URL(request.url).searchParams.get('name') || '' }),
   });
 
@@ -1345,7 +1345,7 @@ const route = async (request, env) => {
   if (path === '/') return homeRoute(request, env, ctx);
   if (path === '/cart') {
     return view(ctx, {
-      title: ctx.settings.cart_title || 'Your Cart',
+      title: ctx.settings.cart_title || '购物车',
       body: cartPage({ cart: ctx.cart, settings: ctx.settings, symbol: ctx.symbol }),
     });
   }
@@ -1377,7 +1377,7 @@ export default {
     } catch (error) {
       console.error('Unhandled error', error && error.stack ? error.stack : error);
       const fallback = new Response(
-        '<!doctype html><meta charset="utf-8"><title>Something went wrong</title><h1>Something went wrong</h1><p>Please try again in a moment.</p>',
+        '<!doctype html><meta charset="utf-8"><title>出错了，请稍后再试</title><h1>出错了，请稍后再试</h1><p>请稍等片刻再重试。</p>',
         { status: 500, headers: HTML_HEADERS }
       );
       return fallback;

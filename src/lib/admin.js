@@ -18,9 +18,9 @@ export const ADMIN_COOKIE = 'cf_admin';
 export const SESSION_MAX_AGE = 60 * 60 * 12; // 12 hours, in seconds
 
 export const CATEGORY_FILTERS = [
-  { value: 'collection', label: 'Products in a collection' },
-  { value: 'tag', label: 'Products with a matching tag' },
-  { value: 'all', label: 'All products' },
+  { value: 'collection', label: '系列中的商品' },
+  { value: 'tag', label: '标签匹配的商品' },
+  { value: 'all', label: '全部商品' },
 ];
 
 const encoder = new TextEncoder();
@@ -108,15 +108,15 @@ export const safeNext = (value, fallback = '/admin/categories') => {
 /* ------------------------------------------------- product form rules ---- */
 
 export const PRODUCT_ERRORS = {
-  title: 'A product needs a title.',
-  handle: 'That product slug is not valid - use a-z, 0-9 and dashes (up to 80 characters).',
-  duplicate: 'Another product already uses that slug.',
-  price: 'The price has to be a number, for example 249 or 249.99.',
-  compare: 'The "was" price has to be a number, or left empty.',
-  image: 'A product needs an image: a path such as /images/b-bag-grey.png or a full https:// URL.',
-  missing: 'That product is no longer in the catalogue.',
-  pick: 'Pick a product from the list first.',
-  filter: 'This category lists every product, so there is nothing to add or remove.',
+  title: '商品需要填写标题。',
+  handle: '商品的别名（URL 别名）不合法：只能使用 a-z、0-9 和短横线，最多 80 个字符。',
+  duplicate: '已有其他商品在使用这个别名。',
+  price: '价格必须是数字，例如 249 或 249.99。',
+  compare: '“原价”必须是数字，或者留空。',
+  image: '商品需要图片：可以是 /images/b-bag-grey.png 这样的路径，也可以是完整的 https:// 链接。',
+  missing: '这个商品已经不在商品库里了。',
+  pick: '请先从列表中选择一个商品。',
+  filter: '这个分类会列出全部商品，因此没有需要添加或移除的内容。',
 };
 
 /** "£249.50", " 1,249.5 " and "249" all read as numbers; blanks as null, junk as NaN. */
@@ -199,9 +199,9 @@ export const normalizeProduct = (data) => {
 /* -------------------------------------------------- category form rules ---- */
 
 const CATEGORY_ERRORS = {
-  name: 'A category needs a name.',
-  slug: 'That slug is not valid - use a-z, 0-9 and dashes (up to 60 characters).',
-  url: 'The link override has to start with "/" (for example /collections/outdoor-range) or be left empty.',
+  name: '分类需要填写名称。',
+  slug: '这个别名（URL 别名）不合法：只能使用 a-z、0-9 和短横线，最多 60 个字符。',
+  url: '自定义链接必须以 “/” 开头（例如 /collections/outdoor-range），也可以留空。',
 };
 
 /**
@@ -258,13 +258,13 @@ export const normalizeCategory = (data) => {
  * colour and style, the carousel timing) is left exactly as it was.
  */
 const HOME_ERRORS = {
-  'bar-text': 'The announcement bar needs some text - an empty bar is a blue stripe with nothing in it.',
-  'bar-icon': 'The bar icon has to be a path such as /images/icon-delivery.svg or a full https:// URL.',
-  'hero-video': 'The hero needs a video: a path such as /images/hero-outdoor-desktop.mp4, a full https:// URL, or a file to upload.',
-  'hero-media': 'The still images have to be paths such as /images/hero-outdoor-poster-desktop.jpg or full https:// URLs.',
-  'hero-link': 'Links have to start with "/" (for example /collections/outdoor-range) or be a full https:// URL.',
-  'hero-button': 'A button needs both a label and a link - clear the label to link the whole slide instead.',
-  'hero-slide': 'That slide is not part of the hero any more - reload the screen and try again.',
+  'bar-text': '公告栏需要填写文字，否则只会剩下一条空荡荡的蓝色横条。',
+  'bar-icon': '公告栏图标必须是以 /images/icon-delivery.svg 这样的路径，或完整的 https:// 链接。',
+  'hero-video': '首页主视觉需要视频：可以是 /images/hero-outdoor-desktop.mp4 这样的路径、完整的 https:// 链接，或者上传一个文件。',
+  'hero-media': '静态图必须是以 /images/hero-outdoor-poster-desktop.jpg 这样的路径，或完整的 https:// 链接。',
+  'hero-link': '链接必须以 “/” 开头（例如 /collections/outdoor-range），或者是完整的 https:// 链接。',
+  'hero-button': '按钮需要同时填写文字和链接；如果想让整张幻灯片可点，请清空按钮文字。',
+  'hero-slide': '这张幻灯片已经不属于首页主视觉了，请刷新页面后重试。',
 };
 
 const clip = (value, length) =>
@@ -361,27 +361,27 @@ export const normalizeHero = (data, stored = {}) => {
  * `src/index.js` turns them straight into notices.
  */
 export const SECTION_ERRORS = {
-  'row-heading': 'A product row needs a heading, for example New Products.',
-  'row-source': 'Pick what the row lists: the products ticked New, the ones ticked Best Selling, or the ones ticked Homepage row.',
-  'row-link': 'Links have to start with "/" (for example /collections/outdoor-range) or be a full https:// URL.',
-  'grid-label': 'A tile needs the words shown over it, for example Shop Outdoor.',
-  'grid-url': 'A tile needs a link: "/" (for example /collections/outdoor-range) or a full https:// URL.',
-  'grid-image': 'A tile needs a background image: a path such as /images/banner-shop-outdoor.jpg or a full https:// URL.',
-  'grid-height': 'The tile height has to be a number with a unit, for example 60vh or 420px.',
-  'grid-item': 'That tile is not part of this block any more - reload the screen and try again.',
-  'banner-image': 'A banner needs an image: a path such as /images/banner-facts.jpg or a full https:// URL.',
-  'banner-position': 'The image position has to be percentages or keywords, for example 88% 86% or center 20%.',
-  'banner-link': 'Links have to start with "/" (for example /collections/b-blanket) or be a full https:// URL.',
-  'banner-button': 'A button needs a label and a link - clear the label to show the copy without a button.',
-  'banner-colour': 'The button colour has to be a hex value such as #18181B.',
+  'row-heading': '商品行需要填写标题，例如“新品推荐”。',
+  'row-source': '请选择这一商品行列出什么：勾选了“新品”的商品、勾选了“热销”的商品，或勾选了“首页推荐”的商品。',
+  'row-link': '链接必须以 “/” 开头（例如 /collections/outdoor-range），或者是完整的 https:// 链接。',
+  'grid-label': '图块需要填写覆盖在图块上的文字，例如“选购户外”。',
+  'grid-url': '图块需要填写链接：以 “/” 开头（例如 /collections/outdoor-range），或者是完整的 https:// 链接。',
+  'grid-image': '图块需要背景图片：可以是 /images/banner-shop-outdoor.jpg 这样的路径，也可以是完整的 https:// 链接。',
+  'grid-height': '图块高度必须是带单位的数字，例如 60vh 或 420px。',
+  'grid-item': '这个图块已经不属于当前区块了，请刷新页面后重试。',
+  'banner-image': '横幅需要图片：可以是 /images/banner-facts.jpg 这样的路径，也可以是完整的 https:// 链接。',
+  'banner-position': '图片位置必须使用百分比或关键词，例如 88% 86% 或 center 20%。',
+  'banner-link': '链接必须以 “/” 开头（例如 /collections/b-blanket），或者是完整的 https:// 链接。',
+  'banner-button': '按钮需要同时填写文字和链接；如果只显示文案、不要按钮，请清空按钮文字。',
+  'banner-colour': '按钮颜色必须是十六进制色值，例如 #18181B。',
 };
 
 /** What one product row can list. The first three read a product switch. */
 export const PRODUCT_ROW_SOURCES = [
-  { value: 'new', label: 'Products ticked "New"' },
-  { value: 'best', label: 'Products ticked "Best Selling"' },
-  { value: 'grid', label: 'Products ticked "Homepage row" (All products)' },
-  { value: 'collection', label: 'The collections picked for this row' },
+  { value: 'new', label: '勾选了“新品”的商品' },
+  { value: 'best', label: '勾选了“热销”的商品' },
+  { value: 'grid', label: '勾选了“首页推荐”的商品（全部商品）' },
+  { value: 'collection', label: '为此商品行选定的系列' },
 ];
 
 /** The button classes `public/css/site.css` styles; anything else renders flat. */
@@ -499,9 +499,9 @@ export const normalizeImageBanner = (data, stored = {}) => {
  * of a link and a link that goes somewhere.
  */
 const FOOTER_ERRORS = {
-  heading: 'A footer column needs a heading, for example Company.',
-  label: 'A footer link needs the text that is shown on the site.',
-  url: 'Footer links have to start with "/" (for example /pages/about), be a full https:// URL or a mailto: address.',
+  heading: '页脚栏需要填写标题，例如“公司”。',
+  label: '页脚链接需要填写站点上显示的文字。',
+  url: '页脚链接必须以 “/” 开头（例如 /pages/about），或者是完整的 https:// 链接或 mailto: 地址。',
 };
 
 /** A path on this site, a link to another site, or a mailto: address. */
@@ -546,8 +546,8 @@ export const normalizeFooterLink = (data) => {
  * `src/index.js` turns them straight into notices.
  */
 export const FOOTER_BRAND_ERRORS = {
-  'brand-name': 'The company block needs the name of the business, for example Chen Furniture.',
-  'brand-logo': 'The logo has to be a path such as /images/footer/logo.png or a full https:// URL (or left empty).',
+  'brand-name': '公司信息区块需要填写商家名称，例如 Chen Furniture。',
+  'brand-logo': 'Logo 必须是以 /images/footer/logo.png 这样的路径，或完整的 https:// 链接（也可以留空）。',
 };
 
 /**
@@ -574,12 +574,12 @@ export const normalizeFooterBrand = (data = {}) => {
  */
 const MEDIA_TYPES = {
   video: {
-    label: 'Video',
+    label: '视频',
     extensions: ['mp4', 'webm', 'mov'],
     mime: { 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov' },
   },
   image: {
-    label: 'Image',
+    label: '图片',
     extensions: ['jpg', 'jpeg', 'png', 'webp', 'avif'],
     mime: { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif' },
   },
@@ -603,11 +603,11 @@ export const mediaKey = (file, kind = 'video', stamp = Date.now(), folder = 'her
   const declared = String(file.type || '').toLowerCase();
   const extension = table.mime[declared];
   if (!extension) {
-    return { error: 'type', path: '', message: `${table.label} uploads have to be ${table.extensions.join(', ')}.` };
+    return { error: 'type', path: '', message: `${table.label}上传仅支持以下格式：${table.extensions.join(', ')}。` };
   }
-  if (!file.size) return { error: 'empty', path: '', message: 'That file is empty.' };
+  if (!file.size) return { error: 'empty', path: '', message: '这个文件是空的。' };
   if (file.size > MEDIA_MAX_BYTES) {
-    return { error: 'size', path: '', message: `That file is ${Math.round(file.size / 1048576)} MB - the limit is 25 MB.` };
+    return { error: 'size', path: '', message: `这个文件有 ${Math.round(file.size / 1048576)} MB，超过了 25 MB 的上限。` };
   }
   const key = `images/${folder}/${stamp}-${name}.${extension}`;
   // `contentType` is what R2 hands back with the object, so the browser gets a

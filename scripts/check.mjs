@@ -168,16 +168,16 @@ if (chrome.includes('mega-menu')) failures.push('views: the header still renders
 const drawer = render(mobileNav(links, '/collections/indoor-range'));
 if (!drawer.includes('mobile-nav__category-link')) failures.push('views: the mobile menu did not render the categories');
 for (const [label, href] of [
-  ['Search', '/search'],
-  ['Contact Details', '/pages/contact-details'],
-  ['Store Locator', '/pages/store-locator'],
+  ['搜索', '/search'],
+  ['联系方式', '/pages/contact-details'],
+  ['门店位置', '/pages/store-locator'],
 ]) {
   if (!drawer.includes(`href="${href}">${label}</a>`)) failures.push(`views: the mobile menu is missing the ${label} link`);
 }
 for (const scraped of ['mobileNavAccordion', 'accordion-button', 'border-bottom py-3', 'Shop all']) {
   if (drawer.includes(scraped)) failures.push(`views: the mobile menu still renders the scraped menu (${scraped})`);
 }
-if (!render(mobileNav([], '/')).includes('Store Locator')) {
+if (!render(mobileNav([], '/')).includes('门店位置')) {
   failures.push('views: the mobile menu links should survive an empty category list');
 }
 
@@ -289,8 +289,8 @@ const orphan = await categoryOfProduct(stubDb, { ...filedProduct, cat_handle: ''
 if (orphan !== null) failures.push('db: categoryOfProduct invented a category for a product that has none');
 
 const detail = render(productPage({ product: filedProduct, settings: {}, symbol: '£', category: filed }));
-if (!detail.includes('<a class="text-secondary" href="/">Home</a>')) {
-  failures.push('views: the product breadcrumb did not start at Home');
+if (!detail.includes('<a class="text-secondary" href="/">首页</a>')) {
+  failures.push('views: the product breadcrumb did not start at 首页');
 }
 if (!detail.includes('<a class="text-secondary" href="/collections/accessories">Accessories</a>')) {
   failures.push('views: the product breadcrumb did not name the category and its link');
@@ -299,8 +299,8 @@ if (detail.includes('/collections/b-blanket')) {
   failures.push('views: the product breadcrumb still points at the product collection');
 }
 const looseProduct = render(productPage({ product: filedProduct, settings: {}, symbol: '£' }));
-if (!looseProduct.includes('<a class="text-secondary" href="/products">Shop</a>')) {
-  failures.push('views: a product without a category should breadcrumb through Shop');
+if (!looseProduct.includes('<a class="text-secondary" href="/products">全部商品</a>')) {
+  failures.push('views: a product without a category should breadcrumb through 全部商品');
 }
 
 
@@ -477,17 +477,17 @@ for (const expected of homeMarkup) {
 // It previews the real bar, and it only offers a file picker when there is a
 // bucket behind it.
 if (!home.includes('announcement-bar')) failures.push('views: the home page screen does not preview the announcement bar');
-if (!render(homeView({ settings: {}, hero: null })).includes('No hero section')) {
+if (!render(homeView({ settings: {}, hero: null })).includes('没有可编辑的视频')) {
   failures.push('views: the home page screen should say so when the homepage has no hero');
 }
 if (render(homeView({ settings: {}, hero: heroSection, media: false })).includes('type="file"')) {
   failures.push('views: the home page screen should not offer uploads without a MEDIA bucket');
 }
 // A hero the homepage is not showing says so, so a save is not a surprise.
-if (!render(homeView({ settings: {}, hero: { ...heroSection, enabled: false } })).includes('This hero block is switched off')) {
+if (!render(homeView({ settings: {}, hero: { ...heroSection, enabled: false } })).includes('该首页轮播区块已关闭')) {
   failures.push('views: the home page screen should flag a hero that is switched off');
 }
-if (render(homeView({ settings: {}, hero: heroSection })).includes('switched off')) {
+if (render(homeView({ settings: {}, hero: heroSection })).includes('该首页轮播区块已关闭')) {
   failures.push('views: an enabled hero should not be flagged as switched off');
 }
 
@@ -549,7 +549,7 @@ for (const expected of [
   'name="object_position"',
   'name="button_label" value="EXPLORE B-BLANKET"',
   'name="button_style"',
-  'Products join this row from their category screen',
+  '商品通过其分类页面加入该栏目',
 ]) {
   if (!blocks.includes(expected)) failures.push(`views: the home page screen is missing ${expected} in a block form`);
 }
@@ -567,7 +567,7 @@ const pickerRow = render(
     sections: [{ ...blockRow, id: 10, data: { heading: 'New Products', source: 'collection', pickers: [{ label: 'B-Mat', collection: 'b-mat' }] } }],
   })
 );
-if (!pickerRow.includes('still lists the collections in its picker data')) {
+if (!pickerRow.includes('该栏目仍在按选择器数据列出系列')) {
   failures.push('views: a collection row should say that its pickers are not edited here');
 }
 // Without a MEDIA bucket there is nothing to upload to, so no file picker.
@@ -823,7 +823,7 @@ const footerSettings = {
 
 const footerAdmin = render(footerView({ groups: footerGroups, settings: footerSettings, media: true }));
 for (const expected of [
-  'Footer',
+  '页脚</h1>',
   'action="/admin/footer/group"',
   'action="/admin/footer/group/save"',
   'action="/admin/footer/group/move"',
@@ -875,7 +875,7 @@ const footerAdminLogo = render(
     media: true,
   })
 );
-const preview = footerAdminLogo.slice(footerAdminLogo.indexOf('>On the site now<'));
+const preview = footerAdminLogo.slice(footerAdminLogo.indexOf('>当前站点显示<'));
 const previewMark = preview.indexOf('<img');
 const previewName = preview.indexOf('<strong>Chen Furniture</strong>');
 if (previewMark < 0 || previewMark > previewName) {

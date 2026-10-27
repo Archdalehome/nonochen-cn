@@ -38,10 +38,10 @@ export const footer = (settings, groups = []) => {
             </div>
             <div class="socials-container text-primary mb-4 mb-md-0 d-flex gap-3">
               ${settings.social_facebook
-                ? html`<a href="${settings.social_facebook}" target="_blank" rel="noopener" class="text-decoration-none text-reset" aria-label="Visit us on Facebook">${icons.facebook}</a>`
+                ? html`<a href="${settings.social_facebook}" target="_blank" rel="noopener" class="text-decoration-none text-reset" aria-label="在 Facebook 关注我们">${icons.facebook}</a>`
                 : ''}
               ${settings.social_instagram
-                ? html`<a href="${settings.social_instagram}" target="_blank" rel="noopener" class="text-decoration-none text-reset" aria-label="Visit us on Instagram">${icons.instagram}</a>`
+                ? html`<a href="${settings.social_instagram}" target="_blank" rel="noopener" class="text-decoration-none text-reset" aria-label="在 Instagram 关注我们">${icons.instagram}</a>`
                 : ''}
             </div>
           </div>
