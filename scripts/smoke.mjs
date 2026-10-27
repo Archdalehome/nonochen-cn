@@ -301,12 +301,12 @@ const adminBody = (fields) =>
     .map(([name, value]) => `${name}=${encodeURIComponent(value)}`)
     .join('&');
 console.log(`     session cookie: ${adminCookie ? 'set' : '(none)'}`);
-await check('/admin/categories', { init: { headers: admin }, contains: ['Product categories', 'Add a category'] });
+await check('/admin/categories', { init: { headers: admin }, contains: ['商品分类', '新增分类'] });
 // A category that is not there is a 404 inside the admin, not a stack trace.
 await check('/admin/categories/products?slug=no-such-category', {
   init: { headers: admin },
   expect: 404,
-  contains: ['Not found'],
+  contains: ['这个分类已经不存在了。'],
 });
 
 // The home page screen holds the announcement bar and the hero the storefront
@@ -317,8 +317,8 @@ await check('/admin/categories/products?slug=no-such-category', {
 const home = await check('/admin/home', {
   init: { headers: admin },
   contains: [
-    'Home page content',
-    'Announcement bar',
+    '首页内容',
+    '公告栏',
     'action="/admin/home/announcement"',
     'action="/admin/home/hero"',
     'action="/admin/home/product-row"',
@@ -414,7 +414,7 @@ if (heroId && heroVideo) {
 // production as well.
 const footer = await check('/admin/footer', {
   init: { headers: admin },
-  contains: ['Footer', 'action="/admin/footer/brand"', 'action="/admin/footer/group"', 'action="/admin/footer/link"'],
+  contains: ['页脚</h1>', 'action="/admin/footer/brand"', 'action="/admin/footer/group"', 'action="/admin/footer/link"'],
 });
 // The Location heading and the currency picker are gone from both sides of the
 // wire: the screen stopped offering them and the storefront stopped rendering
@@ -723,7 +723,7 @@ await check('/admin/products/create', {
 
 const shelf = await check(productScreen, {
   init: { headers: admin },
-  contains: [productName, 'Delete product', 'Remove from this category'],
+  contains: [productName, '删除商品', '从该分类移除'],
 });
 const productId = (shelf.body.match(/id="p-(\d+)-title"/) || [])[1];
 if (!productId) {
@@ -760,7 +760,7 @@ if (!productId) {
   const unlinked = await check(productScreen, {
     init: { headers: admin },
     // The screen's own wording for a category with nothing left in it.
-    contains: ['No products to edit here'],
+    contains: ['暂无可编辑的商品'],
   });
   if (unlinked.body.includes(`id="p-${productId}-title"`)) {
     failures++;
@@ -871,8 +871,8 @@ if (id) {
       init: { method: 'POST', headers: form, body: `line=${line}` },
       expect: 303,
     });
-    await check('/cart', { init: { headers: auth }, contains: ['Cart is empty'] });
-    await check('/cart/drawer', { init: { headers: auth }, contains: ['Cart is empty'] });
+    await check('/cart', { init: { headers: auth }, contains: ['购物车是空的'] });
+    await check('/cart/drawer', { init: { headers: auth }, contains: ['购物车是空的'] });
   }
 }
 
