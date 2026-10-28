@@ -119,7 +119,8 @@ for (const handle of HANDLES) {
 }
 
 /* ---------------------------------------- 关于我们：读得到现有正文 ---- */
-expect(pages.about.includes('About Chen Furniture'), '/admin/pages/about 里能看到种子标题')
+// 0015 之后，这 8 页的标题已经是中文，正文仍是种子英文
+expect(pages.about.includes('关于我们'), '/admin/pages/about 里能看到中文标题')
 expect(pages.about.includes('generous, sink-into-it comfort'), '/admin/pages/about 里能看到种子正文')
 expect(pages.about.includes('name="page_title"'), '编辑页有页面标题输入')
 expect(pages.about.includes('name="block_body[]"'), '编辑页有正文输入')

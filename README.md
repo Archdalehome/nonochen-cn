@@ -20,6 +20,9 @@ migrations and tagged-template views.
   的**用户可见文案**全部改为中文；`<html lang>` 改为 `zh-CN`。
 - `migrations/0013_zh_copy.sql`：D1 里 `settings`（购物车、搜索、商品页表单标题、订阅区、版权行）
   与 `menu_items`（页脚栏目名与链接名）的中文改写，幂等，可重复执行。
+- `migrations/0015_zh_page_titles.sql`：8 个内容页的**标题**改中文（关于我们 / 联系我们 / 常见问题 /
+  服务条款 / 隐私政策 / 配送说明 / 退换货 / 门店位置）。**正文一个字没动**——那四页政策文本写的是
+  英国配送与退换期限，要业主自己用 `/admin/pages` 写。
 - **币种**：`wrangler.jsonc` 的 `CURRENCY=CNY` / `CURRENCY_SYMBOL=¥`，视图里的 `symbol = '¥'` 默认值、
   `money()` 默认值、`public/js/site.js` 的两处符号、商品页结构化数据的 `priceCurrency: 'CNY'`。
   **价格数字一个没动**（演示商品反正要整套换），人民币定价仍待业主给价目表。
