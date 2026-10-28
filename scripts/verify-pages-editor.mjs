@@ -64,11 +64,14 @@ for (const file of readdirSync('migrations').filter((name) => name.endsWith('.sq
 }
 
 const worker = (await import('../src/index.js')).default
+const uploads = []
 const env = {
   DB: new Database(sqlite),
   ADMIN_USER: 'smoke',
   ADMIN_PASSWORD: 'smoke-password',
   SITE_NAME: 'Chen Furniture',
+  // 假的 R2：记下 key，用于验证「上传被认领」
+  MEDIA: { put: async (key) => uploads.push(key) },
 }
 
 let failures = 0
@@ -217,5 +220,51 @@ const listAfter = await (await request('/admin/pages', admin)).text()
 expect(/关于我们[\s\S]{0,400}3 块/.test(listAfter), '/admin/pages 上关于我们显示 3 块')
 expect(listAfter.includes('2026-') || listAfter.includes(':'), '/admin/pages 显示了最后修改时间')
 
-console.log(failures ? `\n${failures} 项没通过` : '\n全部通过：登录 → 列表 → 8 页打开 → 编辑保存 → 前台顺序 → 再保存不重复 → 原有内容未动')
+/* ------------------- 兜底：文件名的 key 对不上时，图也不能丢 ---- */
+// 这就是用户碰到的那个 bug：浏览器把上传字段改成 upload.<新块标识>，但块标识
+// 没跟着改，服务端按标识找不到文件。修好前端之后仍然留一道服务端防线：
+// 没被任何块认领的文件，补进第一个空图片块，或者自己变成一块。
+const boundary = '----smokepages' + Date.now()
+const parts = []
+for (const [name, value] of [
+  ['handle', 'about'],
+  ['page_title', '关于 Chen Furniture'],
+  ['block_key[]', 'kb1'],
+  ['block_type[]', 'page'],
+  ['block_title[]', ''],
+  ['block_body[]', '兜底测试的正文。'],
+  ['block_image[]', ''],
+  ['block_text[]', ''],
+  ['block_width[]', 'wide'],
+  ['block_key[]', 'kb2'],
+  ['block_type[]', 'image_banner'],
+  ['block_title[]', ''],
+  ['block_body[]', ''],
+  ['block_image[]', ''],
+  ['block_text[]', ''],
+  ['block_width[]', 'wide'],
+]) {
+  parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`)
+}
+parts.push(
+  `--${boundary}\r\nContent-Disposition: form-data; name="upload.unknown-xyz"; filename="bench.png"\r\nContent-Type: image/png\r\n\r\n` +
+    'PNGDATA' +
+    '\r\n'
+)
+parts.push(`--${boundary}--\r\n`)
+
+uploads.length = 0
+const orphan = await request('/admin/pages/save', {
+  method: 'POST',
+  headers: { cookie, 'content-type': `multipart/form-data; boundary=${boundary}` },
+  body: parts.join(''),
+  redirect: 'manual',
+})
+expect(orphan.status === 303, `对不上 key 的提交也返回 303（${orphan.status}）`)
+expect(uploads.length === 1, `没被认领的文件仍然被存进 R2（${uploads.length} 次）`)
+const orphanPage = await (await request('/pages/about')).text()
+const savedPath = uploads[0] ? '/' + uploads[0] : ''
+expect(Boolean(savedPath) && orphanPage.includes(savedPath), `前台显示了这个兜底补上的图（${savedPath}）`)
+
+console.log(failures ? `\n${failures} 项没通过` : '\n全部通过：登录 → 列表 → 8 页打开 → 编辑保存 → 前台顺序 → 再保存不重复 → 原有内容未动 → 孤儿上传兜底')
 process.exit(failures ? 1 : 0)

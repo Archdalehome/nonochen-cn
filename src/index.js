@@ -1146,6 +1146,22 @@ const adminPageSave = async (request, env) => {
     blocks.unshift({ type: 'page', name: '正文', data: { heading: pageTitle || pageLabel(handle), title: '', body: '' } });
   }
 
+  // Safety net: a file whose `upload.<key>` matches no block must never be
+  // dropped on the floor. That is exactly how the editor lost pictures when the
+  // browser renamed the file input but not the block key - the screen said the
+  // picture was gone and the only trace was a file nobody claimed. Any such file
+  // now fills the first empty image block, or becomes one of its own.
+  const claimed = new Set(keys.filter(Boolean).map((key) => `upload.${key}`));
+  const orphans = (data.files || []).filter((item) => !claimed.has(item.input));
+  for (const item of orphans) {
+    if (!env.MEDIA) return redirect(`/admin/pages/${handle}?error=pages-storage`);
+    const stored = await storeMediaFile(env, item.file, 'image', 'pages');
+    if (stored.error) return redirect(`/admin/pages/${handle}?error=pages-${stored.error === 'size' ? 'size' : 'type'}`);
+    const gap = blocks.find((block) => block.type === 'image_banner' && !block.data.image);
+    if (gap) gap.data.image = stored.path;
+    else blocks.push({ type: 'image_banner', name: '图片', data: { image: stored.path, text: '', width: 'wide' } });
+  }
+
   await replacePageBlocks(env.DB, handle, blocks);
   return redirect(`/admin/pages/${handle}?flash=pages-saved`);
 };
