@@ -217,10 +217,17 @@
         const template = templateFor(button.getAttribute('data-repeat-add'));
         if (!template) return;
         const row = template.content.firstElementChild.cloneNode(true);
-        // A block added here sends its upload under a name nobody has used yet.
-        row.querySelectorAll('input[type="file"]').forEach((input) => {
-          input.name = input.name.replace(/upload\.[^.]+$/, `upload.new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-        });
+        // 新加的行要换一个没人用过的 key，否则同一个模板克隆两次会撞名。
+        // 关键：隐藏字段 block_key[] 和文件字段必须成对改名——服务端是按
+        // `upload.<block_key>` 去查文件的，只改文件字段就会让上传的文件被丢掉。
+        const newKey = `new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const keyInput = row.querySelector('input[name="block_key[]"]');
+        if (keyInput) {
+          keyInput.value = newKey;
+          row.querySelectorAll('input[type="file"]').forEach((input) => {
+            if (input.name.startsWith('upload.')) input.name = `upload.${newKey}`;
+          });
+        }
         list.appendChild(row);
         const first = row.querySelector('input, textarea, select');
         if (first) first.focus();
