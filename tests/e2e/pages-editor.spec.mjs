@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+﻿import { test, expect } from '@playwright/test';
 
 /**
  * 用户报的那条路径，一字不差地在真浏览器里走一遍：
@@ -49,7 +49,7 @@ test('后台加图片块并上传，前台能看到这张图', async ({ page }) 
   // 4. 保存，并确认成功后是回到编辑器
   await page.click('form[action="/admin/pages/save"] button[type="submit"]');
   await page.waitForURL('**/admin/pages/about**');
-  await expect(page.locator('.alert')).toContainText('页面已保存');
+  await expect(page.locator('.alert-success')).toContainText('页面已保存');
 
   // 5. 前台：图片块在，路径对，而且图真的加载出来了
   await page.goto('/pages/about');
@@ -69,7 +69,7 @@ test('后台加图片块并上传，前台能看到这张图', async ({ page }) 
   await page.locator('[data-repeat-row]').last().locator('[data-repeat-remove]').click();
   await page.click('form[action="/admin/pages/save"] button[type="submit"]');
   await page.waitForURL('**/admin/pages/about**');
-  await expect(page.locator('.alert')).toContainText('页面已保存');
+  await expect(page.locator('.alert-success')).toContainText('页面已保存');
 });
 
 test('上传的文件名与块标识成对（前端 bug 的定点回归）', async ({ page }) => {
