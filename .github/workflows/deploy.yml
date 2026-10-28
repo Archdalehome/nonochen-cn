@@ -197,6 +197,25 @@ jobs:
           SMOKE_HEADER_ATTEMPTS: '12'
         run: node scripts/smoke.mjs "${{ steps.deploy.outputs.url }}"
 
+      # 真浏览器测试：只发 POST 的断言抓不到前端 bug（例如「加图片块后传图被静默丢弃」）。
+      # 对着本地 wrangler dev（干净本地 D1）跑，不碰线上库，也不需要线上后台密码。
+      - name: 安装真浏览器测试依赖
+        run: |
+          npm install --no-save @playwright/test@^1.49.0
+          npx playwright install --with-deps chromium
+
+      - name: 真浏览器跑页面编辑器（加块 → 选图 → 保存 → 前台看图）
+        run: npx playwright test
+
+      - name: 浏览器测试失败时留存证据
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Did the push touch images/?
         id: media
         run: |
