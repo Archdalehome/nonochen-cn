@@ -74,6 +74,15 @@ if (!handle) {
   console.log('FAIL no product handle found on /products');
 } else {
   detailBody = (await check(`/products/${handle}`, { contains: [handle] })).body;
+  // 配送与退换这块现在是两个内容页的实时内容，不该再有写死的英文
+  if (detailBody.includes('Free UK delivery') || detailBody.includes('1pm')) {
+    failures++;
+    console.log('FAIL /products 还在渲染写死的配送英文');
+  }
+  if (!detailBody.includes('/pages/delivery') || !detailBody.includes('/pages/returns')) {
+    failures++;
+    console.log('FAIL /products 的配送与退换没有指向两个内容页');
+  }
 }
 
 // The first collection *card* on /collections: the header and the drawer link to

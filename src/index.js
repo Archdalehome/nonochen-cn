@@ -257,9 +257,14 @@ const productRoute = async (request, env, ctx, handle) => {
   const product = await productByHandle(env.DB, handle);
   if (!product) return notFound(ctx, '这个商品已经下架了。');
 
-  const [related, category] = await Promise.all([
+  // The delivery and returns copy on the product page is the two policy pages
+  // themselves, read in the same batch as the rest of the page - edit a page in
+  // /admin/pages and the product page follows on the next request.
+  const [related, category, deliveryPage, returnsPage] = await Promise.all([
     relatedProducts(env.DB, product, 4),
     categoryOfProduct(env.DB, product),
+    pageSections(env.DB, pageKey('delivery')),
+    pageSections(env.DB, pageKey('returns')),
   ]);
   const symbol = ctx.symbol;
   const title = product.seo_title || product.title;
@@ -270,7 +275,14 @@ const productRoute = async (request, env, ctx, handle) => {
     description: product.seo_description || product.summary,
     canonical: new URL(`/products/${product.handle}`, request.url).toString(),
     image: product.image,
-    body: productView({ product, related, settings: ctx.settings, symbol, category }),
+    body: productView({
+      product,
+      related,
+      settings: ctx.settings,
+      symbol,
+      category,
+      policies: { delivery: deliveryPage, returns: returnsPage },
+    }),
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'Product',

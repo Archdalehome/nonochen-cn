@@ -92,15 +92,40 @@ const buyBox = (product, settings, symbol) => {
         <p class="fs-8 text-center text-secondary mb-0" data-form-message role="status"></p>
       </form>
 
-      <ul class="list-unstyled fs-7 text-secondary mt-4 mb-0 d-flex flex-column gap-2">
-        ${settings.pdp_shipping_note ? html`<li class="d-flex gap-2 align-items-start">${icons.truck}<span>${settings.pdp_shipping_note}</span></li>` : ''}
-        ${product.shipping_note ? html`<li class="d-flex gap-2 align-items-start">${icons.box}<span>${product.shipping_note}</span></li>` : ''}
-        ${settings.pdp_returns_note ? html`<li class="d-flex gap-2 align-items-start">${icons.refresh}<span>${settings.pdp_returns_note}</span></li>` : ''}
-      </ul>
     </div>`;
 };
 
-const accordion = (product, settings) => html`
+/**
+ * The two policy pages the product page mirrors. Whatever the shop writes in
+ * `/admin/pages/delivery` and `/admin/pages/returns` is rendered here on the next
+ * request - no copy lives in this file, so the two can never drift apart.
+ * Image blocks are skipped: a photo inside an accordion reads badly.
+ */
+const policyBlocks = (sections = []) =>
+  (sections || [])
+    .filter((section) => section.type === 'page')
+    .map((section) => ({
+      title: String(section.data.title || '').trim(),
+      body: String(section.data.body || '').trim(),
+    }))
+    .filter((block) => block.title || block.body);
+
+const policyBranch = ({ label, href, cta, blocks }) =>
+  blocks.length
+    ? html`<section class="mb-4">
+        <h3 class="h6 fw-medium mb-2">${label}</h3>
+        ${blocks.map(
+          (block) => html`${block.title ? html`<h4 class="fs-7 fw-medium mb-1">${block.title}</h4>` : ''}
+            <div class="rte text-secondary fs-7 mb-2">${safe(block.body)}</div>`
+        )}
+        <a href="${href}" class="fs-8">${cta} →</a>
+      </section>`
+    : '';
+
+const accordion = (product, settings, policies = {}) => {
+  const delivery = policyBlocks(policies.delivery);
+  const returns = policyBlocks(policies.returns);
+  return html`
   <div class="accordion accordion-flush border-top mt-4" id="pdpAccordion">
     <div class="accordion-item">
       <h2 class="accordion-header" id="pdp-description-heading">
@@ -131,23 +156,27 @@ const accordion = (product, settings) => html`
           </div>
         </div>`
       : ''}
-    <div class="accordion-item">
-      <h2 class="accordion-header" id="pdp-delivery-heading">
-        <button class="accordion-button collapsed px-0 fs-6 fw-normal text-uppercase" type="button" data-bs-toggle="collapse" data-bs-target="#pdp-delivery" aria-expanded="false" aria-controls="pdp-delivery">
-          配送与退换
-        </button>
-      </h2>
-      <div id="pdp-delivery" class="accordion-collapse collapse" aria-labelledby="pdp-delivery-heading" data-bs-parent="#pdpAccordion">
-        <div class="accordion-body px-0 text-secondary fs-7">
-          ${settings.pdp_delivery_copy || 'Free UK delivery on orders over ¥75. Orders placed before 1pm are dispatched the same working day.'}
-        </div>
-      </div>
-    </div>
+    ${delivery.length || returns.length
+      ? html`<div class="accordion-item">
+          <h2 class="accordion-header" id="pdp-delivery-heading">
+            <button class="accordion-button collapsed px-0 fs-6 fw-normal text-uppercase" type="button" data-bs-toggle="collapse" data-bs-target="#pdp-delivery" aria-expanded="false" aria-controls="pdp-delivery">
+              配送与退换
+            </button>
+          </h2>
+          <div id="pdp-delivery" class="accordion-collapse collapse" aria-labelledby="pdp-delivery-heading" data-bs-parent="#pdpAccordion">
+            <div class="accordion-body px-0 text-secondary fs-7">
+              ${policyBranch({ label: '配送说明', href: '/pages/delivery', cta: '查看完整配送说明', blocks: delivery })}
+              ${policyBranch({ label: '退换货', href: '/pages/returns', cta: '退换货政策', blocks: returns })}
+            </div>
+          </div>
+        </div>`
+      : ''}
   </div>`;
+};
 
 /* -------------------------------------------------------------- full page ---- */
 
-export const productView = ({ product, related = [], settings, symbol = '¥', category = null }) => {
+export const productView = ({ product, related = [], settings, symbol = '¥', category = null, policies = {} }) => {
   // Home / the category this product was filed under in /admin / the product.
   // The crumb comes from `categoryOfProduct`, never from the product's own
   // collection: a product can sit in a curated list that is not its category.
@@ -176,7 +205,7 @@ export const productView = ({ product, related = [], settings, symbol = '¥', ca
         </div>
         <div class="col-12 col-lg-5">${buyBox(product, settings, symbol)}</div>
       </div>
-      ${accordion(product, settings)}
+      ${accordion(product, settings, policies)}
     </div>
   </section>
 

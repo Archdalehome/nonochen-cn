@@ -30,6 +30,10 @@ migrations and tagged-template views.
   `products.specs` / `products.features`（JSON）、`product_variants`、`product_media`。行可增删、
   用 ↑↓ 或拖拽排序；图集既可填路径也可多选上传（需要绑 R2）。表单带 `has_details` 标记，
   旧页面或脚本提交不会冲掉已有明细；新建商品没有尺寸时自动补一条「默认」。
+- **商品页「配送与退换」**：不再读 `settings.pdp_delivery_copy`，改为实时渲染
+  `/pages/delivery` 与 `/pages/returns` 的正文（图片块跳过，两段各自带「查看完整…」链接），
+  后台改完这两个页面，商品页下一次请求就跟着变。`migrations/0016_drop_pdp_note_settings.sql`
+  删掉了三个旧的 PDP 文案配置键，代码里不再有任何写死的配送英文。
 
 仍未中文化 / 需业主定稿后才能动：
 
@@ -46,6 +50,7 @@ migrations and tagged-template views.
 | --- | --- |
 | `npm run check` | 所有模块能解析、视图能渲染、种子数据与 schema 对齐 |
 | `node --experimental-sqlite scripts/verify-product-editor.mjs` | 用内存 SQLite 跑完整链路：保存表单（2 尺寸 / 3 颜色 / 4 图 / 2 规格 / 3 卖点）→ 前台渲染 → 再存一次不重复 → 旧提交不丢数据 → 后台回填 |
+| `node --experimental-sqlite scripts/verify-product-policies.mjs` | 商品页「配送与退换」= `/pages/delivery` + `/pages/returns` 的实时内容：改后台立刻生效、清空不出空块、旧的写死英文与 `settings` 兜底全部消失 |
 | `node scripts/verify-smoke-cn.mjs` | 冒烟脚本里的中文断言是否与本地渲染结果一致 |
 | `node --experimental-sqlite scripts/shot-product-editor.mjs` | 渲染后台商品页与前台商品页到 `.shot/`，可配合无头浏览器截图 |
 
